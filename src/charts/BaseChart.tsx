@@ -1,25 +1,37 @@
 import { memo, useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
-import { generateScale } from "../../d3/scales/generateScales";
-import { renderAxes } from "../../d3/axes/generateAxes";
-import { renderSeries } from "../../d3/path/generateSeries";
-import type { timeseriesdata } from "../../types/data.types";
 import { useAtomValue } from "jotai";
 import { sidebarTransitionAtom } from "@/atoms/layout";
-import { generateGrid } from "@/d3/utils/gridGenerator";
-import { Card } from "@/components/ui/card";
+import { generateGrid, type GridType } from "@/d3/utils/gridGenerator";
+import type { timeseriesdata } from "@/types/data.types";
+import { generateScale } from "@/d3/scales/generateScales";
+import { renderAxes } from "@/d3/axes/generateAxes";
+import { renderSeries } from "@/d3/path/generateSeries";
+import { chartSettingsAtomFamily } from "@/atoms/chart-setting";
 
-const LineChart = ({
-  data,
-  height = 300,
-}: {
+interface BaseChartProps {
+  id: string;
   data: timeseriesdata[];
   height?: number;
-}) => {
+  type: "line" | "area" | "scatter";
+  gridType?: GridType;
+}
+
+const BaseChart = ({
+  id,
+  data,
+  height = 300,
+  type = "line",
+  gridType = "both",
+}: BaseChartProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const lastWidthRef = useRef<number | null>(null);
   const [renderTrigger, setRenderTrigger] = useState(0);
   const isTransitioning = useAtomValue(sidebarTransitionAtom);
+
+  const chartSettings = useAtomValue(chartSettingsAtomFamily(id));
+
+  console.log(chartSettings);
 
   // Resize observer
   useEffect(() => {
@@ -54,6 +66,7 @@ const LineChart = ({
   }, []);
 
   useEffect(() => {
+    console.log("Rendering");
     if (!data || data.length === 0 || !containerRef.current) return;
 
     const container = containerRef.current;
@@ -90,7 +103,7 @@ const LineChart = ({
     });
 
     // add grid lines
-    generateGrid(svg, xScale, yScale, w, h);
+    generateGrid(svg, xScale, yScale, w, h, gridType);
 
     renderAxes({
       svg,
@@ -100,19 +113,27 @@ const LineChart = ({
     });
 
     renderSeries({
-      type: "line",
+      type: type,
       data,
       xKey: "x",
       yKey: "y",
       svg,
       scales: { x: xScale, y: yScale },
-      style: { stroke: "steelblue", strokeWidth: 2 },
-      animation: { enabled: true, duration: 1000 },
+      curve: chartSettings.pathCurve,
+      style: {
+        stroke: "steelblue",
+        strokeWidth: 2,
+        showDataPoints: chartSettings.showDataPoints,
+      },
+      animation: {
+        enabled: chartSettings.animation.enabled,
+        duration: chartSettings.animation.duration || 500,
+      },
     });
-  }, [data, height, renderTrigger]);
+  }, [data, height, renderTrigger, type, gridType, chartSettings]);
 
   return (
-    <Card className="@container/card lg:px-6 px-4 w-[60%]">
+    <>
       <div
         ref={containerRef}
         style={{
@@ -123,8 +144,8 @@ const LineChart = ({
         className="chart"
         data-hidden={isTransitioning}
       />
-    </Card>
+    </>
   );
 };
 
-export default memo(LineChart);
+export default memo(BaseChart);

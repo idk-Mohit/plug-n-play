@@ -110,7 +110,7 @@ export function ResourceStatsPanel() {
   }, []);
 
   return (
-    <Card className="w-[340px] shadow-lg mx-6">
+    <Card className="w-[340px] shadow-lg">
       <CardHeader className="space-y-1">
         <CardTitle className="text-lg">Resource Stats</CardTitle>
         <div className="flex items-center gap-2">

@@ -148,6 +148,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   React.useEffect(() => {
     const el = sidebarRef.current;
+    let timer: NodeJS.Timeout;
     if (!el) return;
 
     const handleStart = (e: TransitionEvent) => {
@@ -158,7 +159,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
     const handleEnd = (e: TransitionEvent) => {
       if (e.propertyName === "left" || e.propertyName === "transform") {
-        setTransitioning(false);
+        timer = setTimeout(() => {
+          setTransitioning(false);
+        }, 500);
       }
     };
 
@@ -166,6 +169,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     el.addEventListener("transitionend", handleEnd);
 
     return () => {
+      if (timer) clearTimeout(timer);
       el.removeEventListener("transitionstart", handleStart);
       el.removeEventListener("transitionend", handleEnd);
     };

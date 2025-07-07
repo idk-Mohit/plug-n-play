@@ -1,5 +1,6 @@
 import * as d3 from "d3";
 import type { D3Scale } from "../scales/generateScales";
+import { curveMap, type PathCurveType } from "@/atoms/chart-setting";
 
 // Supported chart types
 type SeriesType = "line" | "area" | "scatter";
@@ -20,8 +21,13 @@ interface RenderSeriesOptions<T> {
     strokeWidth?: number; // Stroke thickness
     fill?: string; // Fill color (area or scatter)
     radius?: number; // Circle radius (scatter)
+    showDataPoints?: boolean; // Whether to show data points
   };
-  transition?: boolean; // Whether to animate the update
+  curve?: PathCurveType; // Curve function
+  animation?: {
+    enabled: boolean;
+    duration?: number; // Duration of animation in milliseconds
+  }; // Whether to animate the update
 }
 
 /**
@@ -36,7 +42,8 @@ function renderSeries<T>({
   svg,
   scales,
   style = {},
-  transition = false,
+  curve = "linear",
+  animation = { enabled: false, duration: 500 },
 }: RenderSeriesOptions<T>) {
   const { x: xScale, y: yScale } = scales;
 
@@ -62,12 +69,13 @@ function renderSeries<T>({
     // Generator for line or area
     const generator =
       type === "line"
-        ? d3.line<T>().x(getX).y(getY)
+        ? d3.line<T>().x(getX).y(getY).curve(curveMap[curve])
         : d3
             .area<T>()
             .x(getX)
             .y0(Number(yScale.range()[0])) // Bottom of chart
-            .y1(getY); // Top line of area
+            .y1(getY)
+            .curve(curveMap[curve]); // Top line of area
 
     // Select or bind to existing path
     const path = svg
@@ -84,10 +92,62 @@ function renderSeries<T>({
     const merged = pathEnter.merge(path);
 
     // Apply `d` attribute from generator with optional transition
-    if (transition) {
-      merged.transition().duration(600).attr("d", generator);
+    // First: set the path's "d" attribute
+
+    merged.attr("d", generator);
+
+    if (style?.showDataPoints) {
+      const pointClass = `point-${type}`;
+
+      const points = svg
+        .selectAll<SVGCircleElement, T>(`.${pointClass}`)
+        .data(data);
+
+      const enter = points
+        .enter()
+        .append("circle")
+        .attr("class", pointClass)
+        .attr("cx", getX)
+        .attr("cy", getY)
+        .attr("r", 0)
+        .style("fill", style.fill || "steelblue");
+
+      const merged = enter.merge(points);
+
+      if (animation.enabled) {
+        merged
+          .transition()
+          .duration(animation.duration ?? 500)
+          .attr("r", style.radius ?? 3)
+          .attr("cx", getX)
+          .attr("cy", getY);
+      } else {
+        merged
+          .attr("r", style.radius ?? 3)
+          .attr("cx", getX)
+          .attr("cy", getY);
+      }
+
+      points.exit().remove();
+    }
+
+    // Then: draw animation
+    if (animation.enabled) {
+      merged
+        .attr("stroke-dasharray", function () {
+          const length = (this as SVGPathElement).getTotalLength();
+          return `${length},${length}`;
+        })
+        .attr("stroke-dashoffset", function () {
+          return (this as SVGPathElement).getTotalLength();
+        })
+
+        .transition()
+        .duration(animation?.duration ?? 1000)
+        .ease(d3.easeLinear)
+        .attr("stroke-dashoffset", 0);
     } else {
-      merged.attr("d", generator);
+      merged.attr("stroke-dasharray", null).attr("stroke-dashoffset", null);
     }
 
     // Style the path
@@ -127,10 +187,10 @@ function renderSeries<T>({
       >
     );
 
-    if (transition) {
+    if (animation.enabled) {
       merged
         .transition()
-        .duration(500)
+        .duration(animation.duration ?? 500)
         .attr("r", style.radius || 3)
         .attr("cx", getX)
         .attr("cy", getY);

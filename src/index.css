@@ -1,12 +1,33 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+@font-face {
+  font-family: 'Geist Sans';
+  src: url('/fonts/geist/Geist-Regular.woff2') format('woff2');
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Geist Mono';
+  src: url('/fonts/geist-mono/GeistMono-Regular.woff2') format('woff2');
+  font-weight: 100 900;
+  font-display: swap;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Geist Sans', 'Geist Mono', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  --primary-font: 'Geist Sans', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  --secondary-font: 'Geist Mono', monospace;
+
+  font-size: small;
+
   line-height: 1.5;
   font-weight: 400;
+
+
 
   color-scheme: light dark;
   color: rgba(255, 255, 255, 0.87);
@@ -83,6 +104,18 @@
 
   --sidebar-ring: oklch(0.708 0 0);
 
+}
+
+code,
+pre,
+* {
+  scrollbar-width: thin !important;
+  scroll-behavior: smooth !important;
+  font-family: var(--primary-font), var(--secondary-font), system-ui, Avenir, Helvetica, Arial, sans-serif !important;
+}
+
+body {
+  overflow: hidden;
 }
 
 @media (prefers-color-scheme: light) {
@@ -194,4 +227,41 @@
 .chart[data-hidden="true"] {
   content-visibility: hidden;
   contain-intrinsic-size: 500px;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0
+  }
+
+  to {
+    opacity: 1
+  }
+}
+
+@keyframes fade-out {
+  from {
+    opacity: 1
+  }
+
+  to {
+    opacity: 0
+  }
+}
+
+@layer utilities {
+  .chart-transition-overlay {
+    @apply absolute inset-0 z-10 flex items-center justify-center backdrop-blur-sm;
+    background-color: transparent;
+    /* ✅ transparent base */
+    pointer-events: none;
+    opacity: 0;
+    animation: fade-out 300ms ease-out forwards;
+    transition: opacity 300ms ease, backdrop-filter 300ms ease
+  }
+
+  .chart-transition-overlay[data-transitioning='true'] {
+    pointer-events: auto;
+    animation: fade-in 300ms ease-in forwards;
+  }
 }
