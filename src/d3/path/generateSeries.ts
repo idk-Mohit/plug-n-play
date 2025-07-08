@@ -1,6 +1,7 @@
 import * as d3 from "d3";
 import type { D3Scale } from "../scales/generateScales";
 import { curveMap, type PathCurveType } from "@/atoms/chart-setting";
+import { getGradientFill } from "@/utils/commonFunctions";
 
 // Supported chart types
 type SeriesType = "line" | "area" | "scatter";
@@ -47,164 +48,196 @@ function renderSeries<T>({
 }: RenderSeriesOptions<T>) {
   const { x: xScale, y: yScale } = scales;
 
-  /**
-   * Safely computes scaled X value.
-   * Handles both Date and string (ISO) types.
-   */
+  svg.selectAll("[class^='series-']").remove();
+  // svg.selectAll("[class^='point-']").remove();
+
+  if (type === "scatter") {
+    renderScatterPoints({
+      data,
+      xKey,
+      yKey,
+      svg,
+      xScale,
+      yScale,
+      style,
+      animation,
+      className: "series-scatter",
+    });
+    return;
+  }
+
   const getX = (d: T): number => {
     const raw = d[xKey];
     const value = raw instanceof Date ? raw : new Date(raw as string);
     return (xScale as d3.AxisScale<d3.AxisDomain>)(value) ?? 0;
   };
 
-  /**
-   * Computes scaled Y value.
-   */
   const getY = (d: T): number => {
     return (yScale as d3.AxisScale<d3.AxisDomain>)(d[yKey] as number) ?? 0;
   };
 
-  // ---------- LINE or AREA PATH ----------
-  if (type === "line" || type === "area") {
-    // Generator for line or area
-    const generator =
-      type === "line"
-        ? d3.line<T>().x(getX).y(getY).curve(curveMap[curve])
-        : d3
-            .area<T>()
-            .x(getX)
-            .y0(Number(yScale.range()[0])) // Bottom of chart
-            .y1(getY)
-            .curve(curveMap[curve]); // Top line of area
+  const generator =
+    type === "line"
+      ? d3.line<T>().x(getX).y(getY).curve(curveMap[curve])
+      : d3
+          .area<T>()
+          .x(getX)
+          .y0(Number(yScale.range()[0]))
+          .y1(getY)
+          .curve(curveMap[curve]);
 
-    // Select or bind to existing path
-    const path = svg
-      .selectAll<SVGPathElement, T>(`.series-${type}`)
-      .data([data]); // Always a single path, so wrap data in array
+  // Gradient setup
+  if (type === "area") {
+    const gradientId = "area-gradient";
+    const defs = svg.select("defs").empty()
+      ? svg.append("defs")
+      : svg.select("defs");
 
-    // Create path if it doesn’t exist
-    const pathEnter = path
-      .enter()
-      .append("path")
-      .attr("class", `series-${type}`);
+    defs.select(`#${gradientId}`).remove();
 
-    // Merge new and existing path elements
-    const merged = pathEnter.merge(path);
+    const gradient = defs
+      .append("linearGradient")
+      .attr("id", gradientId)
+      .attr("x1", "0%")
+      .attr("x2", "0%")
+      .attr("y1", "0%")
+      .attr("y2", "100%");
 
-    // Apply `d` attribute from generator with optional transition
-    // First: set the path's "d" attribute
+    const baseStroke = style.stroke || "steelblue";
+    const fillColor = getGradientFill(baseStroke);
 
-    merged.attr("d", generator);
+    gradient.append("stop").attr("offset", "0%").attr("stop-color", fillColor);
 
-    if (style?.showDataPoints) {
-      const pointClass = `point-${type}`;
-
-      const points = svg
-        .selectAll<SVGCircleElement, T>(`.${pointClass}`)
-        .data(data);
-
-      const enter = points
-        .enter()
-        .append("circle")
-        .attr("class", pointClass)
-        .attr("cx", getX)
-        .attr("cy", getY)
-        .attr("r", 0)
-        .style("fill", style.fill || "steelblue");
-
-      const merged = enter.merge(points);
-
-      if (animation.enabled) {
-        merged
-          .transition()
-          .duration(animation.duration ?? 500)
-          .attr("r", style.radius ?? 3)
-          .attr("cx", getX)
-          .attr("cy", getY);
-      } else {
-        merged
-          .attr("r", style.radius ?? 3)
-          .attr("cx", getX)
-          .attr("cy", getY);
-      }
-
-      points.exit().remove();
-    }
-
-    // Then: draw animation
-    if (animation.enabled) {
-      merged
-        .attr("stroke-dasharray", function () {
-          const length = (this as SVGPathElement).getTotalLength();
-          return `${length},${length}`;
-        })
-        .attr("stroke-dashoffset", function () {
-          return (this as SVGPathElement).getTotalLength();
-        })
-
-        .transition()
-        .duration(animation?.duration ?? 1000)
-        .ease(d3.easeLinear)
-        .attr("stroke-dashoffset", 0);
-    } else {
-      merged.attr("stroke-dasharray", null).attr("stroke-dashoffset", null);
-    }
-
-    // Style the path
-    merged
-      .attr("fill", type === "area" ? style.fill || "steelblue" : "none")
-      .attr("stroke", style.stroke || "steelblue")
-      .attr("stroke-width", style.strokeWidth ?? 2);
-
-    // Remove old paths if needed
-    path.exit().remove();
+    gradient
+      .append("stop")
+      .attr("offset", "120%")
+      .attr("stop-color", "transparent");
   }
 
-  // ---------- SCATTER POINTS ----------
-  if (type === "scatter") {
-    // Bind each point to a circle element
-    const circles = svg
-      .selectAll<SVGCircleElement, T>("circle.point")
-      .data(data, (d: T) => d[xKey] + "-" + d[yKey]); // Use unique key for data join
+  const path = svg.selectAll<SVGPathElement, T>(`.series-${type}`).data([data]);
 
-    // Create new circles
-    const enter = circles
-      .enter()
-      .append("circle")
-      .attr("class", "point")
-      .attr("r", 0) // Start radius for animation
-      .attr("cx", getX)
-      .attr("cy", getY)
-      .style("fill", style.fill || "steelblue");
+  const pathEnter = path.enter().append("path").attr("class", `series-${type}`);
+  const merged = pathEnter.merge(path);
 
-    // Merge new and existing circles
-    const merged = enter.merge(
-      circles as unknown as d3.Selection<
-        SVGCircleElement,
-        T,
-        SVGGElement,
-        unknown
-      >
-    );
+  merged.attr("d", generator);
 
-    if (animation.enabled) {
-      merged
-        .transition()
-        .duration(animation.duration ?? 500)
-        .attr("r", style.radius || 3)
-        .attr("cx", getX)
-        .attr("cy", getY);
-    } else {
-      merged
-        .attr("r", style.radius || 3)
-        .attr("cx", getX)
-        .attr("cy", getY);
-    }
+  if (animation.enabled) {
+    merged
+      .attr("stroke-dasharray", function () {
+        const length = (this as SVGPathElement).getTotalLength();
+        return `${length},${length}`;
+      })
+      .attr("stroke-dashoffset", function () {
+        return (this as SVGPathElement).getTotalLength();
+      })
+      .transition()
+      .duration(animation.duration ?? 1000)
+      .ease(d3.easeLinear)
+      .attr("stroke-dashoffset", 0);
+  } else {
+    merged.attr("stroke-dasharray", null).attr("stroke-dashoffset", null);
+  }
 
-    // Remove unused circles
-    circles.exit().remove();
+  merged
+    .attr("fill", type === "area" ? "url(#area-gradient)" : "none")
+    .attr("stroke", style.stroke || "steelblue")
+    .attr("stroke-width", style.strokeWidth ?? 2);
+
+  path.exit().remove();
+
+  // 🔄 Datapoints now use the external render function
+  if (style?.showDataPoints) {
+    renderScatterPoints({
+      data,
+      xKey,
+      yKey,
+      svg,
+      xScale,
+      yScale,
+      style,
+      animation,
+      className: `point-${type}`,
+    });
+  } else {
+    svg.selectAll(`.point-${type}`).remove();
   }
 }
 
-export { renderSeries };
+function renderScatterPoints<T>({
+  data,
+  xKey,
+  yKey,
+  svg,
+  xScale,
+  yScale,
+  style = {},
+  animation = { enabled: false, duration: 500 },
+  className = "series-scatter",
+}: {
+  data: T[];
+  xKey: keyof T;
+  yKey: keyof T;
+  svg: d3.Selection<SVGGElement, unknown, null, undefined>;
+  xScale: D3Scale;
+  yScale: D3Scale;
+  style?: {
+    fill?: string;
+    radius?: number;
+  };
+  animation?: {
+    enabled: boolean;
+    duration?: number;
+  };
+  className?: string;
+}) {
+  const getX = (d: T): number => {
+    const raw = d[xKey];
+    const value = raw instanceof Date ? raw : new Date(raw as string);
+    return (xScale as d3.AxisScale<d3.AxisDomain>)(value) ?? 0;
+  };
+
+  const getY = (d: T): number => {
+    return (yScale as d3.AxisScale<d3.AxisDomain>)(d[yKey] as number) ?? 0;
+  };
+
+  const circles = svg
+    .selectAll<SVGCircleElement, T>(`circle.${className}`)
+    .data(data, (d: T) => `${d[xKey]}-${d[yKey]}`);
+
+  const enter = circles
+    .enter()
+    .append("circle")
+    .attr("class", className)
+    .attr("r", 0)
+    .attr("cx", getX)
+    .attr("cy", getY)
+    .style("fill", style.fill || "steelblue");
+
+  const merged = enter.merge(
+    circles as unknown as d3.Selection<
+      SVGCircleElement,
+      T,
+      SVGGElement,
+      unknown
+    >
+  );
+
+  if (animation?.enabled) {
+    merged
+      .transition()
+      .duration(animation.duration ?? 500)
+      .attr("r", style.radius || 3)
+      .attr("cx", getX)
+      .attr("cy", getY);
+  } else {
+    merged
+      .attr("r", style.radius || 3)
+      .attr("cx", getX)
+      .attr("cy", getY);
+  }
+
+  circles.exit().remove();
+}
+
+export { renderSeries, renderScatterPoints };
 export type { RenderSeriesOptions, SeriesType };

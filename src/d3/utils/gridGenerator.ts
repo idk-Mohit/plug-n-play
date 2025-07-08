@@ -23,6 +23,8 @@ export function generateGrid(
   height: number,
   gridType: GridType = "both"
 ): void {
+  svg.selectAll(".grid.vertical").remove();
+  svg.selectAll(".grid.horizontal").remove();
   // If the grid type is set to either "vertical", "both", or not specified (defaults to "both"),
   // generate a vertical grid.
   if (gridType === "vertical" || gridType === "both") {

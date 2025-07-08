@@ -60,14 +60,14 @@ export function CollapsibleComponent({ data }: CollapsibleComponentProps) {
     <>
       {data.map((group, index) => (
         <React.Fragment key={group.name}>
-          <SidebarGroup className="p-0">
+          <SidebarGroup className="p-0 my-2">
             <Collapsible
               defaultOpen={index === 0}
               className="group/collapsible"
             >
               <SidebarGroupLabel
                 asChild
-                className="group/label text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground w-full text-sm"
+                className="group/label mb-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground w-full text-sm"
               >
                 <CollapsibleTrigger>
                   {group.name}
@@ -76,7 +76,7 @@ export function CollapsibleComponent({ data }: CollapsibleComponentProps) {
               </SidebarGroupLabel>
               <CollapsibleContent>
                 <SidebarGroupContent>
-                  <SidebarMenu>
+                  <SidebarMenu className="gap-2">
                     {group.items.map((item) => {
                       switch (item.type) {
                         case "checkbox":
@@ -144,7 +144,7 @@ export function CollapsibleComponent({ data }: CollapsibleComponentProps) {
               </CollapsibleContent>
             </Collapsible>
           </SidebarGroup>
-          <SidebarSeparator className="mx-0" />
+          {/* <SidebarSeparator className="mx-0" /> */}
         </React.Fragment>
       ))}
     </>
