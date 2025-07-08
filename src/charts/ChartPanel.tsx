@@ -50,6 +50,7 @@ export function ChartPanel({ id, title, data }: ChartPanelProps) {
         <BaseChart
           id={id}
           data={data}
+          height={200}
           type={chartSettings.type}
           gridType={chartSettings.grid}
         />

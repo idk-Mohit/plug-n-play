@@ -24,6 +24,7 @@ import {
   type PathCurveType,
 } from "@/atoms/chart-setting";
 import { CollapsibleComponent as Collapsible } from "@/components/collapse/Collapsible";
+import ColorSelector from "@/components/ColorSelector";
 
 export function ChartFullSettingsDrawer({ id }: { id: string }) {
   const [open, setOpen] = useAtom(chartFullSettingsDrawerAtom);
@@ -31,11 +32,12 @@ export function ChartFullSettingsDrawer({ id }: { id: string }) {
 
   return (
     <Drawer
+      autoFocus
       direction="right"
       open={open.enabled}
       onOpenChange={(isOpen) => setOpen({ ...open, enabled: isOpen })}
     >
-      <DrawerContent>
+      <DrawerContent className="w-[150px]">
         <DrawerHeader>
           <DrawerTitle>Chart Settings</DrawerTitle>
           <DrawerDescription>
@@ -98,20 +100,6 @@ export function ChartFullSettingsDrawer({ id }: { id: string }) {
               </Select>
             </div>
           </div>
-
-          {/* Stroke width */}
-          {/* <div className="space-y-2">
-            <Label>Stroke Width</Label>
-            <Slider
-              min={1}
-              max={8}
-              step={1}
-              value={[settings.strokeWidth ?? 2]}
-              onValueChange={([value]) =>
-                setSettings({ ...settings, strokeWidth: value })
-              }
-            />
-          </div> */}
 
           {/* Collapsibles */}
           <Collapsible
@@ -235,6 +223,7 @@ export function ChartFullSettingsDrawer({ id }: { id: string }) {
               },
             ]}
           />
+          <ColorSelector id={id} />
         </div>
       </DrawerContent>
     </Drawer>
