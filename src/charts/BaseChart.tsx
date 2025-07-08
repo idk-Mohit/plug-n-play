@@ -28,7 +28,7 @@ const BaseChart = ({
   const svgRef = useRef<SVGSVGElement | null>(null);
   const groupRef = useRef<SVGGElement | null>(null);
   // @ts-ignore
-  const lastRef = useRef<HTMLElement | null>(null);
+  const lastRef = useRef<any>(null);
   const [renderTrigger, setRenderTrigger] = useState(0);
 
   const isTransitioning = useAtomValue(sidebarTransitionAtom);
