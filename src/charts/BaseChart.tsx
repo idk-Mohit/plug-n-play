@@ -27,7 +27,8 @@ const BaseChart = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const groupRef = useRef<SVGGElement | null>(null);
-  const lastRef = useRef<any>(null);
+  // @ts-ignore
+  const lastRef = useRef<HTMLElement | null>(null);
   const [renderTrigger, setRenderTrigger] = useState(0);
 
   const isTransitioning = useAtomValue(sidebarTransitionAtom);
@@ -201,19 +202,17 @@ const BaseChart = ({
       .style("visibility", "hidden");
 
     g.selectAll("circle[class^='point-']")
-      .on("mouseover", function (event, d) {
+      .on("mouseover", function (_event, d: unknown) {
+        const data = d as { x: number; y: number };
         tooltip.style("visibility", "visible").html(`
-        <div><strong>x:</strong> ${formatX(d.x)}</div>
-        <div><strong>y:</strong> ${formatY(d.y)}</div>
-      `);
+          <div><strong>x:</strong> ${formatX(data.x)}</div>
+          <div><strong>y:</strong> ${formatY(data.y)}</div>
+        `);
       })
       .on("mousemove", function (event) {
         tooltip
           .style("top", `${event.offsetY + 10}px`)
           .style("left", `${event.offsetX + 10}px`);
-      })
-      .on("mouseout", function () {
-        tooltip.style("visibility", "hidden");
       });
 
     // Save current state
@@ -249,7 +248,7 @@ function hashData(data: timeseriesdata[]): string {
   return JSON.stringify(data.map((d) => `${d.x}-${d.y}`)).slice(0, 500);
 }
 
-function formatX(x: any) {
+function formatX(x: number | Date) {
   return x instanceof Date ? d3.timeFormat("%b %d, %Y")(x) : x;
 }
 function formatY(y: number) {
