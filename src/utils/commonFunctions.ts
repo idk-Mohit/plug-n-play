@@ -12,8 +12,6 @@ import * as d3 from "d3";
  * alpha value, in HSLA syntax.
  */
 export function getGradientFill(stroke: string, alpha: number = 0.4): string {
-  console.log("stroke input:", stroke);
-
   // Convert modern CSS syntax: hsl(210 82% 36%) → hsl(210, 82%, 36%)
   const normalized = stroke.replace(
     /^hsl\(\s*(\d+)\s+(\d+)%\s+(\d+)%\s*\)$/i,
@@ -29,7 +27,5 @@ export function getGradientFill(stroke: string, alpha: number = 0.4): string {
 
   // Fallback: named colors or hex values
   const hsl = d3.hsl(stroke); // fallback with original stroke
-  console.log("converted via d3.hsl:", hsl);
-
   return `hsla(${hsl.h}, ${hsl.s * 100}%, ${hsl.l * 100}%, ${alpha})`;
 }

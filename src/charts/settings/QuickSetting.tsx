@@ -72,6 +72,7 @@ export function ChartQuickSettings({ id }: ChartQuickSettingsProps) {
             <Label>Grid</Label>
             <Select
               value={settings.grid}
+              defaultValue={settings.grid}
               onValueChange={(value) =>
                 setSettings({ ...settings, grid: value as GridType })
               }

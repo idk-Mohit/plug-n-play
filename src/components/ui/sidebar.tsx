@@ -78,12 +78,10 @@ function SidebarProvider({
     (value: boolean | ((value: boolean) => boolean)) => {
       const openState = typeof value === "function" ? value(open) : value;
       if (setOpenProp) {
-        console.log("setOpenProp if", openState);
         setTransitioning(true);
         setOpenProp(openState);
       } else {
         setTransitioning(true);
-        console.log("setOpenProp else", openState);
         _setOpen(openState);
       }
 

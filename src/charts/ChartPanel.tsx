@@ -24,7 +24,7 @@ export function ChartPanel({ id, title, data }: ChartPanelProps) {
 
   useEffect(() => {
     setChartSettings((prev) => ({ ...prev, title, id }));
-  }, [id, title]);
+  }, [id, title, setChartSettings]);
 
   return (
     <Card className="@container/card p-4 lg:px-6 w-[100%] relative gap-1.5">
@@ -37,7 +37,7 @@ export function ChartPanel({ id, title, data }: ChartPanelProps) {
             {data.length} data points • Type: {chartSettings.type}
           </p>
         </div>
-        <ChartQuickSettings id="chart-quick-settings" />
+        <ChartQuickSettings id={id} />
       </CardHeader>
       <Separator />
       <CardContent className="px-0 relative">

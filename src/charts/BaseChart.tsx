@@ -8,6 +8,7 @@ import { renderScatterPoints, renderSeries } from "@/d3/path/generateSeries";
 import type { timeseriesdata } from "@/types/data.types";
 import { generateScale } from "@/d3/scales/generateScales";
 import { chartSettingsAtomFamily, type GridType } from "@/atoms/chart-setting";
+import { addSvgTooltip } from "@/d3/tooltip/tooltip";
 
 interface BaseChartProps {
   id: string;
@@ -33,8 +34,6 @@ const BaseChart = ({
 
   const isTransitioning = useAtomValue(sidebarTransitionAtom);
   const chartSettings = useAtomValue(chartSettingsAtomFamily(id));
-
-  console.log("Chart color: ", chartSettings.stroke);
 
   // 1️⃣ Initialization (SVG + Resize Observer)
   useEffect(() => {
@@ -104,10 +103,10 @@ const BaseChart = ({
     });
 
     const last = lastRef.current ?? {};
-
     // 🔁 Grid update
     if (
       last.gridType !== gridType ||
+      last.gridType === undefined ||
       last.width !== width ||
       last.height !== height
     ) {
@@ -185,35 +184,13 @@ const BaseChart = ({
       g.selectAll(`[class^="point-"]`).remove();
     }
 
-    // adding tooltip
-    // 🧠 Add this once per chart
-    const tooltip = d3
-      .select(container)
-      .append("div")
-      .attr("class", "tooltip")
-      .style("position", "absolute")
-      .style("pointer-events", "none")
-      .style("background", "rgba(0, 0, 0, 0.7)")
-      .style("color", "white")
-      .style("padding", "6px 10px")
-      .style("border-radius", "4px")
-      .style("font-size", "12px")
-      .style("z-index", "10")
-      .style("visibility", "hidden");
-
-    g.selectAll("circle[class^='point-']")
-      .on("mouseover", function (_event, d: unknown) {
-        const data = d as { x: number; y: number };
-        tooltip.style("visibility", "visible").html(`
-          <div><strong>x:</strong> ${formatX(data.x)}</div>
-          <div><strong>y:</strong> ${formatY(data.y)}</div>
-        `);
-      })
-      .on("mousemove", function (event) {
-        tooltip
-          .style("top", `${event.offsetY + 10}px`)
-          .style("left", `${event.offsetX + 10}px`);
-      });
+    addSvgTooltip({
+      svg,
+      data,
+      xScale,
+      yScale,
+      enable: chartSettings.tooltip,
+    });
 
     // Save current state
     lastRef.current = {
@@ -227,8 +204,9 @@ const BaseChart = ({
       dataHash: hashData(data),
       xDomain: xScale.domain(),
       yDomain: yScale.domain(),
+      tooltip: chartSettings.tooltip,
     };
-  }, [data, type, gridType, chartSettings, renderTrigger]);
+  }, [id, data, type, gridType, chartSettings, renderTrigger]);
 
   return (
     <div
@@ -246,13 +224,6 @@ const BaseChart = ({
 
 function hashData(data: timeseriesdata[]): string {
   return JSON.stringify(data.map((d) => `${d.x}-${d.y}`)).slice(0, 500);
-}
-
-function formatX(x: number | Date) {
-  return x instanceof Date ? d3.timeFormat("%b %d, %Y")(x) : x;
-}
-function formatY(y: number) {
-  return d3.format(".2f")(y);
 }
 
 export default memo(BaseChart);
