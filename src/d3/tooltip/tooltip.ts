@@ -2,7 +2,6 @@
 import * as d3 from "d3";
 import type { timeseriesdata } from "@/types/data.types";
 import type { D3Scale } from "../scales/generateScales";
-import { Arrow } from "@radix-ui/react-tooltip";
 
 interface AddSvgTooltipProps {
   svg: d3.Selection<SVGGElement, unknown, null, undefined>;
@@ -98,7 +97,7 @@ export function addSvgTooltip({
     text: d3.Selection<SVGTextElement, unknown, null, undefined>,
     path: d3.Selection<SVGPathElement, unknown, null, undefined>
   ) {
-    const { x, y, width: w, height: h } = text.node()!.getBBox();
+    const { y, width: w, height: h } = text.node()!.getBBox();
     text.attr("transform", `translate(${-w / 2},${15 - y})`);
     path.attr(
       "d",
