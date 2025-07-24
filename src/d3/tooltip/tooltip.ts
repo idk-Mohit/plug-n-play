@@ -108,7 +108,7 @@ export function addSvgTooltip({
 
 interface AddHtmlTooltipProps {
   container: HTMLElement; // chart container (position: relative)
-  svg: d3.Selection<SVGGElement, unknown, null, undefined>; // your <g.main-group> parent
+  svg: d3.Selection<SVGSVGElement, unknown, null, undefined>; // your <g.main-group> parent
   data: timeseriesdata[];
   xScale: D3Scale;
   yScale: D3Scale;
