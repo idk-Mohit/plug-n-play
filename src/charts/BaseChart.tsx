@@ -8,7 +8,7 @@ import { renderScatterPoints, renderSeries } from "@/d3/path/generateSeries";
 import type { timeseriesdata } from "@/types/data.types";
 import { generateScale } from "@/d3/scales/generateScales";
 import { chartSettingsAtomFamily, type GridType } from "@/atoms/chart-setting";
-import { addSvgTooltip } from "@/d3/tooltip/tooltip";
+import { addHtmlTooltip } from "@/d3/tooltip/tooltip";
 
 interface BaseChartProps {
   id: string;
@@ -184,7 +184,16 @@ const BaseChart = ({
       g.selectAll(`[class^="point-"]`).remove();
     }
 
-    addSvgTooltip({
+    // addSvgTooltip({
+    //   svg: g,
+    //   data,
+    //   xScale,
+    //   yScale,
+    //   enable: chartSettings.tooltip,
+    // });
+
+    addHtmlTooltip({
+      container,
       svg,
       data,
       xScale,
