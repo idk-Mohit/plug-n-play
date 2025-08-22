@@ -1,4 +1,3 @@
-// components/ChartQuickSettings.tsx
 import {
   Select,
   SelectContent,

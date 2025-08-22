@@ -1,11 +1,18 @@
+import { useMemo } from "react";
 interface LoaderProps {
   type: "wave" | "bars" | "line" | "pulse" | "grid" | "random";
   size?: number;
   className?: string;
 }
 
-import { useMemo } from "react";
-
+/**
+ * Renders a loader animation.
+ *
+ * @param type - The type of loader. Valid values are: "wave", "bars", "line", "pulse", "grid", or "random". If "random", a random loader is displayed.
+ * @param size - The size of the loader. Defaults to 64.
+ * @param className - Additional class names to apply to the loader. Defaults to an empty string.
+ * @returns A loader component.
+ */
 export function Loader({ type, size = 64, className = "" }: LoaderProps) {
   const availableTypes = ["wave", "bars", "line", "pulse", "grid"] as const;
 

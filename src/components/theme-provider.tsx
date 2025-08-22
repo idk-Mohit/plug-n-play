@@ -22,7 +22,7 @@ const ThemeProviderContext = createContext<ThemeProviderState>(initialState);
 
 export function ThemeProvider({
   children,
-  defaultTheme = "system",
+  defaultTheme = "dark",
   storageKey = "vite-ui-theme",
   ...props
 }: ThemeProviderProps) {
@@ -35,17 +35,19 @@ export function ThemeProvider({
 
     root.classList.remove("light", "dark");
 
-    if (theme === "system") {
-      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
-        .matches
-        ? "dark"
-        : "light";
+    // Commented to force dark theme always
+    // if (theme === "system") {
+    //   const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
+    //     .matches
+    //     ? "dark"
+    //     : "light";
 
-      root.classList.add(systemTheme);
-      return;
-    }
+    //   root.classList.add(systemTheme);
+    //   return;
+    // }
 
-    root.classList.add(theme);
+    root.classList.add("dark"); //static dark theme mode
+    // root.classList.add(theme); //The normal way to handle theme using toggle button
   }, [theme]);
 
   const value = {

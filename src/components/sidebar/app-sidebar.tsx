@@ -1,5 +1,3 @@
-"use client";
-
 import * as React from "react";
 // import {
 //   IconCamera,
@@ -16,135 +14,62 @@ import * as React from "react";
 //   IconSettings,
 // } from "@tabler/icons-react";
 
-// import { NavDocuments } from "@/components/nav-documents";
 import { NavMain } from "./main-sidebar";
-// import { NavSecondary } from "@/components/nav-secondary";
-// import { NavUser } from "@/components/nav-user";
+
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
+  // SidebarFooter,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { NavDocuments } from "./nav-document";
-import { useSetAtom } from "jotai";
+import { useAtom, useSetAtom } from "jotai";
 import { sidebarTransitionAtom } from "@/atoms/layout";
-
-const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
-  navMain: [
-    {
-      title: "Dashboard",
-      url: "#",
-      // icon: IconDashboard,
-    },
-    {
-      title: "Analytics",
-      url: "#",
-      // icon: IconChartBar,
-    },
-    {
-      title: "API Connector",
-      url: "#",
-      // icon: IconDatabase,
-      badge: "Soon",
-      disabled: true,
-    },
-  ],
-  navClouds: [
-    {
-      title: "Capture",
-      // icon: IconCamera,
-      isActive: true,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Proposal",
-      // icon: IconFileDescription,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Prompts",
-      // icon: IconFileAi,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-  ],
-  navSecondary: [
-    {
-      title: "Settings",
-      url: "#",
-      // icon: IconSettings,
-    },
-    {
-      title: "Get Help",
-      url: "#",
-      // icon: IconHelp,
-    },
-    {
-      title: "Search",
-      url: "#",
-      // icon: IconSearch,
-    },
-  ],
-  documents: [
-    {
-      name: "Data Library",
-      url: "#",
-      // icon: IconDatabase,
-    },
-    {
-      name: "Reports",
-      url: "#",
-      // icon: IconReport,
-    },
-    {
-      name: "Word Assistant",
-      url: "#",
-      // icon: IconFileWord,
-    },
-  ],
-};
+import { activeViewAtom } from "@/atoms/view";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const sidebarRef = React.useRef<HTMLDivElement>(null);
   const setTransitioning = useSetAtom(sidebarTransitionAtom);
+
+  const [view, setView] = useAtom(activeViewAtom);
+
+  const data = {
+    user: {
+      name: "shadcn",
+      email: "m@example.com",
+      avatar: "/avatars/shadcn.jpg",
+    },
+    navMain: [
+      {
+        title: "Dashboards",
+        url: "#",
+        onClick: () => setView("dashboard"),
+        active: view === "dashboard",
+      },
+      {
+        title: "Datasets",
+        url: "#",
+        onClick: () => setView("datasets"),
+        active: view === "datasets",
+      },
+      {
+        title: "Visualizations",
+        url: "#",
+        badge: "Soon",
+        disabled: true,
+        active: view === "visuals",
+      },
+      {
+        title: "Activity",
+        url: "#",
+        badge: "Soon",
+        disabled: true,
+        active: view === "activity",
+      },
+    ],
+  };
 
   React.useEffect(() => {
     const el = sidebarRef.current;
@@ -153,7 +78,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
     const handleStart = (e: TransitionEvent) => {
       if (e.propertyName === "left" || e.propertyName === "transform") {
-        // setTransitioning(true);
+        setTransitioning(true);
       }
     };
 
@@ -165,7 +90,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       }
     };
 
-    el.addEventListener("transitionstart", handleStart);
+    // el.addEventListener("transitionstart", handleStart);
     el.addEventListener("transitionend", handleEnd);
 
     return () => {
@@ -185,7 +110,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               className="data-[slot=sidebar-menu-button]:!p-1.5"
             >
               <a href="#">
-                {/* <IconInnerShadowTop className="!size-5" /> */}
                 <span className="text-base font-semibold">Plug And Play</span>
               </a>
             </SidebarMenuButton>
@@ -194,9 +118,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavDocuments items={data.documents} />
       </SidebarContent>
-      <SidebarFooter>{/* <NavUser user={data.user} /> */}</SidebarFooter>
+      {/* <SidebarFooter></SidebarFooter> */}
     </Sidebar>
   );
 }

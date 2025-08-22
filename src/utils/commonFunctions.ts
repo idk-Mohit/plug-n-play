@@ -1,4 +1,5 @@
 import * as d3 from "d3";
+import { isPlainObject, isEqual, some, trim } from "lodash-es";
 
 /**
  * Given a CSS color string (e.g. hex, named color, or modern HSL syntax),
@@ -28,4 +29,48 @@ export function getGradientFill(stroke: string, alpha: number = 0.4): string {
   // Fallback: named colors or hex values
   const hsl = d3.hsl(stroke); // fallback with original stroke
   return `hsla(${hsl.h}, ${hsl.s * 100}%, ${hsl.l * 100}%, ${alpha})`;
+}
+
+/**
+ * Validates if input is a proper array of flat objects (dataset style).
+ */
+export function validateJsonDataset(input: string): {
+  valid: boolean;
+  reason?: string;
+  parsed?: unknown[];
+} {
+  let parsed;
+
+  try {
+    parsed = JSON.parse(input);
+  } catch (e) {
+    console.log("[Error in validating Json Dataset]", e);
+    return { valid: false, reason: "Invalid JSON format" };
+  }
+
+  if (!Array.isArray(parsed)) {
+    return { valid: false, reason: "JSON must be an array of objects" };
+  }
+
+  if (parsed.length === 0) {
+    return { valid: false, reason: "Array is empty" };
+  }
+
+  if (!parsed.every((item) => isPlainObject(item))) {
+    return { valid: false, reason: "Each item must be a plain object" };
+  }
+
+  const baseKeys = Object.keys(parsed[0]);
+  const allHaveSameKeys = parsed.every((item) =>
+    isEqual(Object.keys(item).sort(), baseKeys.sort())
+  );
+  if (!allHaveSameKeys) {
+    return { valid: false, reason: "All objects must have the same keys" };
+  }
+
+  if (some(baseKeys, (k) => trim(k) === "")) {
+    return { valid: false, reason: "Object keys cannot be empty strings" };
+  }
+
+  return { valid: true, parsed };
 }

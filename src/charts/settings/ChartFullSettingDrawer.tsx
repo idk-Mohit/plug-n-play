@@ -1,4 +1,3 @@
-// components/ChartFullSettingsDrawer.tsx
 import {
   Drawer,
   DrawerContent,

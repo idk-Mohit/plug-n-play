@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useMemo } from "react";
 import { HslColorPicker } from "react-colorful";
 import { Button } from "@/components/ui/button";

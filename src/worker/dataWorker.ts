@@ -5,6 +5,16 @@ import init, { generate_series } from "../wasm/wasm_math"; // adjust path as nee
 
 let initialized = false;
 
+/**
+ * Handles incoming messages from the main thread.
+ * @param {MessageEvent} e The incoming message event.
+ * @property {string} e.data.task The task to perform. Currently only "generate_series" is supported.
+ * @property {Object} e.data.payload The payload for the task. For "generate_series", { count: number } is expected.
+ * @emits {MessageEvent} A response message with the following properties:
+ * @property {string} data.status Either "success", "error", or "working".
+ * @property {string} [data.message] An error message if `data.status === "error"`.
+ * @property {timeseriesdata[]} [data.data] The generated array of timeseries data if `data.status === "success"`.
+ */
 self.onmessage = async (e) => {
   self.postMessage({ status: "worker ready" });
   const { task, payload } = e.data;
