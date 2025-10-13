@@ -4,7 +4,6 @@ import CardComponent from "@/components/card/CardComponent";
 import FileUpload from "./components/fileUpload";
 import JsonUpload from "./components/JsonUpload";
 import { DatasetList } from "./components/DatasetList";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function DatasetsPage() {
   const [mode, setMode] = useState<"idle" | "json">("idle");
