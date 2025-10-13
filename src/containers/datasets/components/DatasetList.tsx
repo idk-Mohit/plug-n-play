@@ -35,6 +35,7 @@ import IconButton from "@/components/IconButton";
 import type { AnyRecord, uuid } from "@/types/data.types";
 import { dataEngine } from "@/core/data-engine";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { safeFormatDate } from "@/core/date.utils";
 
 /**
  * Choose an icon based on dataset type.
@@ -169,32 +170,16 @@ export function DatasetList() {
   } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  /**
-   * Use a single Intl.DateTimeFormat instance for performance when formatting dates.
-   */
-  const dateFmt = useMemo(
-    () =>
-      new Intl.DateTimeFormat("en-US", {
-        month: "numeric",
-        day: "numeric",
-        year: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      }),
-    [],
-  );
-
   /** Format ISO string with the shared formatter. */
   const formatDate = useCallback(
-    (iso: string) => dateFmt.format(new Date(iso)),
-    [dateFmt],
+    (value: string | number | Date | null | undefined) => safeFormatDate(value),
+    []
   );
 
   /** The currently selected (expanded) dataset, if any. */
   const selectedDataset = useMemo(
     () => datasets.find((d) => d.id === expandedDataset) ?? null,
-    [datasets, expandedDataset],
+    [datasets, expandedDataset]
   );
 
   /**
@@ -237,7 +222,7 @@ export function DatasetList() {
         setDeleteDataSet(null);
       }
     },
-    [setDatasets],
+    [setDatasets]
   );
 
   if (datasets.length === 0) {
