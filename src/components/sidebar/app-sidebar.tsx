@@ -1,18 +1,4 @@
 import * as React from "react";
-// import {
-//   IconCamera,
-//   IconChartBar,
-//   IconDashboard,
-//   IconDatabase,
-//   IconFileAi,
-//   IconFileDescription,
-//   IconFileWord,
-//   IconHelp,
-//   IconInnerShadowTop,
-//   IconReport,
-//   IconSearch,
-//   IconSettings,
-// } from "@tabler/icons-react";
 
 import { NavMain } from "./main-sidebar";
 
@@ -73,7 +59,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   React.useEffect(() => {
     const el = sidebarRef.current;
-    let timer: NodeJS.Timeout;
+    let timer: ReturnType<typeof setTimeout>;
     if (!el) return;
 
     const handleStart = (e: TransitionEvent) => {

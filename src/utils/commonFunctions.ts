@@ -1,5 +1,5 @@
 import * as d3 from "d3";
-import { isPlainObject, isEqual, some, trim } from "lodash-es";
+import { isPlainObject, some, trim } from "lodash-es";
 
 /**
  * Given a CSS color string (e.g. hex, named color, or modern HSL syntax),
@@ -61,12 +61,12 @@ export function validateJsonDataset(input: string): {
   }
 
   const baseKeys = Object.keys(parsed[0]);
-  const allHaveSameKeys = parsed.every((item) =>
-    isEqual(Object.keys(item).sort(), baseKeys.sort())
-  );
-  if (!allHaveSameKeys) {
-    return { valid: false, reason: "All objects must have the same keys" };
-  }
+  // const allHaveSameKeys = parsed.every((item) =>
+  //   isEqual(Object.keys(item).sort(), baseKeys.sort())
+  // );
+  // if (!allHaveSameKeys) {
+  //   return { valid: false, reason: "All objects must have the same keys" };
+  // }
 
   if (some(baseKeys, (k) => trim(k) === "")) {
     return { valid: false, reason: "Object keys cannot be empty strings" };

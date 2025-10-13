@@ -44,7 +44,7 @@ export function ResourceStatsPanel() {
   });
 
   useEffect(() => {
-    let intervalId: NodeJS.Timeout | null = null;
+    let intervalId: number | null = null;
     let idleCallbackId: number | null = null;
     let lastUpdate = 0;
 

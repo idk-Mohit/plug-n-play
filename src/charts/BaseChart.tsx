@@ -28,7 +28,7 @@ const BaseChart = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const groupRef = useRef<SVGGElement | null>(null);
-  // @ts-ignore
+  //ts-ignore
   const lastRef = useRef<any>(null);
   const [renderTrigger, setRenderTrigger] = useState(0);
 
@@ -52,7 +52,7 @@ const BaseChart = ({
     groupRef.current = g.node();
 
     // Setup ResizeObserver
-    let resizeTimeout: NodeJS.Timeout | null = null;
+    let resizeTimeout: number | null = null;
     const observer = new ResizeObserver(() => {
       clearTimeout(resizeTimeout!);
       resizeTimeout = setTimeout(() => {

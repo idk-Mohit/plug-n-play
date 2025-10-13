@@ -26,7 +26,7 @@ const LineChart = ({
     const container = containerRef.current;
     if (!container) return;
 
-    let resizeTimeout: undefined | NodeJS.Timeout;
+    let resizeTimeout: undefined | number;
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const newWidth = entry.contentRect.width;

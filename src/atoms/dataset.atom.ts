@@ -1,15 +1,19 @@
-// src/atoms/dataset.atom.ts
+// path: src/atoms/dataset.atom.ts
+import type { uuid } from "@/types/data.types";
 import { atomWithStorage } from "jotai/utils";
 
-export interface DatasetMeta {
-  id: number;
+export type DatasetType = "json" | "csv";
+
+export interface Dataset {
+  id: string;
   name: string;
-  type: "json" | "csv";
-  added: string;
+  type: DatasetType;
+  data?: unknown; // keep raw parsed JSON; for CSV you'd store rows
+  size: string; // e.g., "12.3 KB"
+  records?: number; // number of rows/items if array-like
+  uploadDate: string; // ISO string
+  preview: unknown;
+  storageKey: uuid;
 }
 
-// Use Jotai’s built-in atomWithStorage for persistence
-export const persistedDatasetsAtom = atomWithStorage<DatasetMeta[]>(
-  "datasets",
-  []
-);
+export const persistedDatasetsAtom = atomWithStorage<Dataset[]>("datasets", []);

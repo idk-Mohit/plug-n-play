@@ -1,5 +1,5 @@
-import { useAtom } from "jotai";
-import { Suspense } from "react";
+import { useAtom, useSetAtom } from "jotai";
+import { Suspense, useEffect } from "react";
 import { activeViewAtom } from "@/atoms/view";
 import {
   //   DashboardView,
@@ -8,6 +8,7 @@ import {
   ActivityView,
   HomeView,
 } from "@/containers";
+import { setBreadcrumbsAtom } from "@/atoms/breadcrumbs";
 
 /**
  * A component that renders the current view based on the activeViewAtom.
@@ -22,12 +23,20 @@ import {
 export default function ViewRenderer() {
   const [view] = useAtom(activeViewAtom);
 
+  const setBreadcrumbs = useSetAtom(setBreadcrumbsAtom);
+
   const Component = {
     dashboard: HomeView,
     datasets: DatasetsView,
     visuals: VisualsView,
     activity: ActivityView,
   }[view];
+
+  useEffect(() => {
+    setBreadcrumbs(
+      String(view).charAt(0).toUpperCase() + String(view).slice(1)
+    );
+  }, [view, setBreadcrumbs]);
 
   return (
     <Suspense fallback={<div className="p-4 text-muted">Loading view…</div>}>

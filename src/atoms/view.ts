@@ -1,6 +1,6 @@
 // atoms/view.ts
-import { atom } from "jotai";
+import { atomWithStorage } from "jotai/utils";
 
-export const activeViewAtom = atom<
+export const activeViewAtom = atomWithStorage<
   "dashboard" | "datasets" | "visuals" | "activity"
->("dashboard");
+>("activeView", "dashboard");
