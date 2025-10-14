@@ -5,7 +5,7 @@ export const DashboardView = lazy(
   () => import("@/containers/dashboard/Dashboard")
 );
 export const DatasetsView = lazy(
-  () => import("@/containers/datasets/Datasets")
+  () => import("@/containers/datasources/Datasources")
 );
 export const VisualsView = lazy(
   () => import("@/containers/visualizations/Visuals")

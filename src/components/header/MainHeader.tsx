@@ -1,6 +1,6 @@
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { Button } from "./ui/button";
+import { Button } from "../ui/button";
 import { useAtomValue } from "jotai";
 import { breadcrumbsAtom } from "@/atoms/breadcrumbs";
 

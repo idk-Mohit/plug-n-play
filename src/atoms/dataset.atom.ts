@@ -16,4 +16,7 @@ export interface Dataset {
   storageKey: uuid;
 }
 
-export const persistedDatasetsAtom = atomWithStorage<Dataset[]>("datasets", []);
+export const persistedDatasetsAtom = atomWithStorage<Dataset[]>(
+  "datasources",
+  []
+);
