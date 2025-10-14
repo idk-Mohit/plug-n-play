@@ -3,7 +3,7 @@ import { FileText } from "lucide-react";
 import CardComponent from "@/components/card/CardComponent";
 import FileUpload from "./components/fileUpload";
 import JsonUpload from "./components/JsonUpload";
-import { DatasetList } from "./components/DatasetList";
+import { DatasetList } from "./components/DatasourceList";
 
 export default function DatasetsPage() {
   const [mode, setMode] = useState<"idle" | "json">("idle");

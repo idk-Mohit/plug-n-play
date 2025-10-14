@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { persistedDatasetsAtom, type Dataset } from "@/atoms/dataset.atom";
-import { useAtom } from "jotai";
+import { useAtom, useSetAtom } from "jotai";
 import {
   Dialog,
   DialogContent,
@@ -36,6 +36,12 @@ import type { AnyRecord, uuid } from "@/types/data.types";
 import { dataEngine } from "@/core/data-engine";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { safeFormatDate } from "@/core/date.utils";
+import {
+  ButtonGroup,
+  ButtonGroupSeparator,
+} from "@/components/ui/button-group";
+import { listOpfsRoot } from "@/core/storage/opfs.utils";
+import { activeViewAtom } from "@/atoms/view";
 
 /**
  * Choose an icon based on dataset type.
@@ -61,6 +67,12 @@ const DatasetItem = memo(function DatasetItem({
   onShowGrid: (e: React.MouseEvent) => void;
 }) {
   const Icon = getFileIcon(dataset.type);
+
+  const openFileViewer = async () => {
+    console.log("Open file viewer");
+    const entries = await listOpfsRoot();
+    console.table(entries);
+  };
 
   return (
     <div className="bg-card rounded-lg border border-border hover:shadow-md transition-all duration-200">
@@ -124,16 +136,36 @@ const DatasetItem = memo(function DatasetItem({
         <div className="border-t border-border p-4 bg-muted/20">
           <h5 className="text-sm font-medium text-card-foreground mb-2 flex items-center gap-2 justify-between">
             Data Preview
-            <Button
-              aria-label="Open table view"
-              variant="secondary"
-              size="sm"
-              onClick={onShowGrid}
-              className="text-primary hover:text-destructive hover:bg-destructive/10 cursor-pointer flex align-center gap-2"
-            >
-              Table View{" "}
-              <Table className="h-4 w-4 text-primary" aria-hidden="true" />
-            </Button>
+            <ButtonGroup>
+              <Button
+                aria-label="Open table view"
+                variant="secondary"
+                size="sm"
+                onClick={onShowGrid}
+                className="text-primary hover:text-destructive hover:bg-destructive/10 cursor-pointer flex align-center gap-2"
+              >
+                Table View{" "}
+                <Table className="h-4 w-4 text-primary" aria-hidden="true" />
+              </Button>
+              {dataset.type === "csv" ? (
+                <>
+                  <ButtonGroupSeparator />
+                  <Button
+                    aria-label="Open OPFS Directory"
+                    variant="secondary"
+                    size="sm"
+                    onClick={openFileViewer}
+                    className="text-primary hover:text-destructive hover:bg-destructive/10 cursor-pointer flex align-center gap-2"
+                  >
+                    File Viewer{" "}
+                    <Table
+                      className="h-4 w-4 text-primary"
+                      aria-hidden="true"
+                    />
+                  </Button>
+                </>
+              ) : null}
+            </ButtonGroup>
           </h5>
 
           {/* Preview JSON (rendered as code, truncated for large arrays by parent) */}
@@ -155,14 +187,12 @@ const DatasetItem = memo(function DatasetItem({
  * and a delete confirmation alert dialog.
  */
 export function DatasetList() {
+  const setView = useSetAtom(activeViewAtom);
   const [datasets, setDatasets] = useAtom(persistedDatasetsAtom);
-
   // Which dataset row is expanded
   const [expandedDataset, setExpandedDataset] = useState<string | null>(null);
-
   // Table view dialog visibility
   const [showGrid, setShowGrid] = useState(false);
-
   // Delete confirmation dialog state
   const [deleteDataSet, setDeleteDataSet] = useState<{
     show: boolean;
@@ -299,6 +329,16 @@ export function DatasetList() {
 
           <DialogFooter>
             <IconButton
+              onClick={() => {
+                setView({
+                  view: "dataset",
+                  meta: {
+                    datasetId: expandedDataset ?? undefined,
+                    tab: "preview",
+                  },
+                });
+                // location.hash = `#${expandedDataset}`;
+              }}
               icon={Fullscreen}
               text="View full dataset"
               textLocation="after"

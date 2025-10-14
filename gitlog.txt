@@ -1,0 +1,193 @@
+* commit c938a476ffe7c4b784e64cc4a6e5dd1edb1e2aaa (HEAD -> main, origin/main, origin/HEAD)
+| Author: idk-mohit <mototurbo12499@gmail.com>
+| Date:   Mon Oct 13 13:33:49 2025 +0530
+| 
+|     feat: add d3-time-format and its types for enhanced date handling
+| 
+* commit 472bc6648711d6b27089d236e127686e02c79c6f
+| Author: idk-mohit <mototurbo12499@gmail.com>
+| Date:   Mon Oct 13 13:11:53 2025 +0530
+| 
+|     fix: remove unused ScrollArea import from DatasetsPage component
+| 
+* commit d2342daba93714b2ad11e41afc56d5bd63b46dc8
+| Author: idk-mohit <mototurbo12499@gmail.com>
+| Date:   Mon Oct 13 13:04:03 2025 +0530
+| 
+|     feat: implement scroll area component and integrate into dataset list
+|     
+|     - Added ScrollArea and ScrollBar components for better UI scrolling experience.
+|     - Integrated ScrollArea into DatasetList for improved dataset navigation.
+|     - Created Textarea component for JSON input in JsonUpload.
+|     - Developed DatasetList component to display datasets with expandable previews and delete confirmation.
+|     - Implemented JsonUpload for uploading JSON datasets with error handling.
+|     - Added FileUpload component for CSV and JSON file uploads with drag-and-drop support.
+|     - Established data-engine for managing dataset storage and retrieval using IndexedDB.
+|     - Created storage utility functions for IndexedDB operations.
+|     - Seeded default data for initial application state.
+| 
+* commit 3d8c81b321bc63b3a2941bf08376c668b662f344
+| Author: idk-mohit <mototurbo12499@gmail.com>
+| Date:   Fri Aug 22 21:14:47 2025 +0530
+| 
+|     feat: add lodash-es and its types, implement dataset management with validation
+|     
+|     - Added lodash-es and @types/lodash-es to package.json and pnpm-lock.yaml
+|     - Created dataset.atom.ts for managing persisted datasets with Jotai
+|     - Implemented DatasetsPage component for JSON and CSV dataset uploads
+|     - Added validation for JSON datasets in commonFunctions.ts
+|     - Introduced ViewRenderer component to dynamically render views based on active state
+|     - Updated App component to use ViewRenderer instead of Home
+|     - Created Activity and Visuals components with basic structure
+|     - Refactored theme provider to enforce dark mode
+|     - Cleaned up unused imports and comments in various components
+| 
+* commit 057368087925ea1eeecadc4b5950603ebf55e7ab
+| Author: idk-Mohit <mototurbo12499@gmail.com>
+| Date:   Thu Jul 24 20:02:13 2025 +0530
+| 
+|     fix: update index.html and add favicon.svg for improved metadata and branding
+| 
+* commit a9f94902f79524f334c276693f26fd785b40dcda
+| Author: idk-Mohit <mototourbo12499@gmail.com>
+| Date:   Thu Jul 24 19:43:52 2025 +0530
+| 
+|     fix: update svg type in AddHtmlTooltipProps for correct selection
+| 
+* commit 2df904ced02957a550a3c821bdb9b53bff592d22
+| Author: idk-Mohit <mototourbo12499@gmail.com>
+| Date:   Thu Jul 24 19:35:39 2025 +0530
+| 
+|     fix: remove unused Arrow import and adjust tooltip positioning logic
+| 
+* commit 09fffbeeecb40f02056e52fc06acb8352d789dcc
+| Author: idk-mohit <mototourbo12499@gmail.com>
+| Date:   Thu Jul 24 17:45:20 2025 +0530
+| 
+|     refactor: replace SVG tooltip with HTML tooltip for improved functionality
+|     
+|     added auto switch direction for tooltip arrow.
+| 
+* commit d6af15f807d5c60a9f482a85999757d75bd3e61d
+| Author: idk-mohit <mototurbo12499@gmail.com>
+| Date:   Sun Jul 20 21:16:06 2025 +0530
+| 
+|     feat: enhance chart settings and tooltip functionality
+|     - Added tooltip support in BaseChart using addSvgTooltip function.
+|     - Updated chart settings to allow for grid type and data point visibility adjustments.
+|     - Refactored ChartPanel to ensure proper settings propagation.
+|     - Removed deprecated pnpm workspace configuration.
+|     - Cleaned up console logs and improved code readability.
+|   
+*   commit cf10d0eba29acab0c19683d5956813e385377114
+|\  Merge: 409c6c0 ee9527c
+| | Author: Mohit <30345679+idk-Mohit@users.noreply.github.com>
+| | Date:   Tue Jul 8 09:56:55 2025 +0530
+| | 
+| |     Merge pull request #3 from idk-Mohit/dev
+| |     
+| |     fix: change lastRef type to any for compatibility in BaseChart
+| | 
+| * commit ee9527c2c532bf87993b90a229a67da66cad7ea0
+| | Author: idk-mohit <mototurbo12499@gmai.com>
+| | Date:   Tue Jul 8 09:56:03 2025 +0530
+| | 
+| |     fix: change lastRef type to any for compatibility in BaseChart
+| | 
+* | commit 409c6c053779adf691ee25a9ed3890afe4088c01
+|\| Merge: e8c9fe2 7e402c2
+| | Author: Mohit <30345679+idk-Mohit@users.noreply.github.com>
+| | Date:   Tue Jul 8 09:53:08 2025 +0530
+| | 
+| |     Merge pull request #2 from idk-Mohit/dev
+| |     
+| |     fix: update type for lastRef and improve tooltip data handling in BaseChart
+| | 
+| * commit 7e402c230bef8c8d8eaeb41b79399fb8cff4f046
+| | Author: idk-mohit <mototurbo12499@gmai.com>
+| | Date:   Tue Jul 8 09:49:38 2025 +0530
+| | 
+| |     fix: update type for lastRef and improve tooltip data handling in BaseChart
+| |     refactor: remove unused SidebarSeparator import in Collapsible component
+| | 
+* | commit e8c9fe24bc67d51dd129e4eecbe5251169a92550
+|\| Merge: e972eaa ca977c2
+| | Author: Mohit <30345679+idk-Mohit@users.noreply.github.com>
+| | Date:   Tue Jul 8 09:43:30 2025 +0530
+| | 
+| |     Merge pull request #1 from idk-Mohit/dev
+| |     
+| |     feat: add react-colorful for color selection and implement ColorSelector component
+| | 
+| * commit ca977c2ac067070aac013cce8fb8d72f0708483d
+|/  Author: idk-mohit <mototurbo12499@gmai.com>
+|   Date:   Tue Jul 8 09:39:53 2025 +0530
+|   
+|       feat: add react-colorful for color selection and implement ColorSelector component
+|       
+|       fix: update chart settings to use new color selection and improve chart rendering logic
+|       
+|       refactor: enhance BaseChart to support new features and improve performance
+|       
+|       chore: update package.json and pnpm-lock.yaml to include react-colorful dependency
+|       
+|       style: adjust styles in Collapsible and ChartFullSettingDrawer for better UI
+|       
+|       feat: add gradient fill functionality in commonFunctions for area charts
+|       
+|       fix: improve grid generation logic to remove existing grids before rendering new ones
+|       
+|       refactor: streamline renderAxes and renderSeries functions for better maintainability
+| 
+* commit e972eaa3b67daa5abe478d0180814613a0ec9d95
+| Author: idk-mohit <mototurbo12499@gmai.com>
+| Date:   Mon Jul 7 17:50:35 2025 +0530
+| 
+|     Add TypeScript definitions for WebAssembly module wasm_math_bg.wasm
+|     
+|     - Created a new declaration file `wasm_math_bg.wasm.d.ts` to provide TypeScript support for the WebAssembly module.
+|     - Exported memory, functions, and necessary bindings for better integration with TypeScript.
+|   
+*   commit 4c584aa4192cb32c650e0a57abc040ae3e9879aa
+|\  Merge: 56190a8 0c22c90
+| | Author: idk-mohit <mototurbo12499@gmai.com>
+| | Date:   Mon Jul 7 17:48:14 2025 +0530
+| | 
+| |     Merge branch 'main' of https://github.com/idk-Mohit/plug-n-play
+| | 
+| * commit 0c22c90850b1bc0b0a2511d2d6914a1757fb6160
+| | Author: Mohit <30345679+idk-Mohit@users.noreply.github.com>
+| | Date:   Sat Jul 5 19:46:27 2025 +0530
+| | 
+| |     Update README.md
+| | 
+* | commit 56190a8b2e15541b7d6a964aa722dd1e20ed07e5
+|/  Author: idk-mohit <mototurbo12499@gmai.com>
+|   Date:   Mon Jul 7 17:48:05 2025 +0530
+|   
+|       feat: add ChartQuickSettings component for quick chart configuration
+|       
+|       feat: implement CollapsibleComponent for sidebar collapsible menus
+|       
+|       feat: create Loader component with multiple loading animations
+|       
+|       feat: add UI components for collapsible, drawer, popover, resizable, slider, and switch
+|       
+|       feat: enhance Home container with chart panel and resource stats
+|       
+|       feat: implement grid generation utility for D3 charts
+| 
+* commit 0bc438a01e26beebb81b6534c8abc74ce850c042
+  Author: idk-mohit <mototurbo12499@gmai.com>
+  Date:   Sat Jul 5 19:42:42 2025 +0530
+  
+      feat: add TypeScript configuration and initial worker setup
+      
+      feat2: create the dashboard with simple line chart.
+      
+      - Created vite-env.d.ts for Vite client types.
+      - Implemented dataWorker.ts for handling time series data generation using WebAssembly.
+      - Added tsconfig.app.json for application TypeScript configuration.
+      - Created tsconfig.json for project references.
+      - Added tsconfig.node.json for Node.js TypeScript configuration.
+      - Configured Vite with React and Tailwind CSS support in vite.config.ts.

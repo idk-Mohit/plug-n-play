@@ -1,12 +1,14 @@
-// path: src/components/DataTable.tsx
-"use client";
-
-import { useMemo, useRef } from "react";
+import React, { useMemo, useRef } from "react";
 import {
   type ColumnDef,
+  type ColumnFiltersState,
   flexRender,
   getCoreRowModel,
+  getFilteredRowModel,
+  getSortedRowModel,
+  type SortingState,
   useReactTable,
+  type VisibilityState,
 } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
 
@@ -19,22 +21,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { AnyRecord } from "@/types/data.types";
+import { DataTableColumnHeader, DataTableViewOptions } from "./column-header";
 
 interface DataTableProps<TData extends AnyRecord, TValue = unknown> {
   data: TData[];
   columns?: ColumnDef<TData, TValue>[];
-  maxPreviewLen?: number; // truncate long cell text
-  height?: number; // px, scroll area height; default 400
+  maxPreviewLen?: number;
+  height?: number | string;
 }
-
-/** "user_name" | "userName" -> "User Name" */
-const humanize = (key: string) =>
-  key
-    .replace(/([a-z\d])([A-Z])/g, "$1 $2")
-    .replace(/[_-]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/^./, (s) => s.toUpperCase());
 
 const isPrimitive = (v: unknown) =>
   v == null || ["string", "number", "boolean"].includes(typeof v);
@@ -62,16 +56,25 @@ function inferColumns<TData extends AnyRecord>(
   return Object.keys(first).map((key) => ({
     id: key,
     accessorKey: key as keyof TData,
-    header: humanize(key),
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title={key} />
+    ),
     cell: ({ getValue }) => {
       const v = getValue() as unknown;
       const text = preview(v, maxPreviewLen);
       return (
-        <span title={isPrimitive(v) ? String(v ?? "") : JSON.stringify(v)}>
+        <span
+          className="block truncate"
+          title={isPrimitive(v) ? String(v ?? "") : JSON.stringify(v)}
+        >
           {text}
         </span>
       );
     },
+    // give every inferred column a sane default width
+    size: 160,
+    minSize: 80,
+    maxSize: 500,
   }));
 }
 
@@ -89,20 +92,43 @@ export function DataTable<TData extends AnyRecord, TValue = unknown>({
     >[];
   }, [columnsProp, data, maxPreviewLen]);
 
-  const table = useReactTable<TData>({
+  const [sorting, setSorting] = React.useState<SortingState>([]);
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
+    []
+  );
+  const [columnVisibility, setColumnVisibility] =
+    React.useState<VisibilityState>({});
+  const [rowSelection, setRowSelection] = React.useState({});
+
+  const table = useReactTable({
     data,
     columns,
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    onColumnVisibilityChange: setColumnVisibility,
+    onRowSelectionChange: setRowSelection,
+    // keep widths stable and accessible to header/cells
+    columnResizeMode: "onChange",
+    defaultColumn: { size: 160, minSize: 80 },
+    state: {
+      sorting,
+      columnFilters,
+      columnVisibility,
+      rowSelection,
+    },
   });
+
+  const rows = table.getRowModel().rows;
 
   // Virtualization
   const parentRef = useRef<HTMLDivElement | null>(null);
-  const rows = table.getRowModel().rows;
-
   const rowVirtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 36, // row height estimate (px)
+    estimateSize: () => 36,
     overscan: 8,
   });
 
@@ -114,21 +140,23 @@ export function DataTable<TData extends AnyRecord, TValue = unknown>({
 
   return (
     <div className="overflow-hidden rounded-md border bg-secondary/30">
-      {/* Scroll container */}
+      <DataTableViewOptions table={table} />
       <div
         ref={parentRef}
         className="relative overflow-auto"
         style={{ height }}
       >
-        <Table className="w-full">
-          {/* keep thead simple; make each <th> sticky */}
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
+        {/* IMPORTANT: real table, not grid; fixed layout; allow horizontal scroll */}
+        <Table className="min-w-max table-fixed">
+          <TableHeader className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            {table.getHeaderGroups().map((hg) => (
+              <TableRow key={hg.id}>
+                {hg.headers.map((header) => (
                   <TableHead
                     key={header.id}
-                    className="sticky top-0 z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+                    // bind width to TanStack column size
+                    style={{ width: header.column.getSize() }}
+                    className="whitespace-nowrap overflow-hidden text-ellipsis"
                   >
                     {header.isPlaceholder
                       ? null
@@ -142,7 +170,6 @@ export function DataTable<TData extends AnyRecord, TValue = unknown>({
             ))}
           </TableHeader>
 
-          {/* Virtualized body with top/bottom padding rows */}
           <TableBody>
             {rows.length ? (
               <>
@@ -165,7 +192,17 @@ export function DataTable<TData extends AnyRecord, TValue = unknown>({
                       style={{ height: vi.size }}
                     >
                       {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id}>
+                        <TableCell
+                          key={cell.id}
+                          // same width as its header
+                          style={{ width: cell.column.getSize() }}
+                          className="truncate"
+                          title={
+                            isPrimitive(cell.getValue() as unknown)
+                              ? String(cell.getValue() ?? "")
+                              : undefined
+                          }
+                        >
                           {flexRender(
                             cell.column.columnDef.cell,
                             cell.getContext()

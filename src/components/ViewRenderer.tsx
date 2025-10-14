@@ -1,14 +1,18 @@
-import { useAtom, useSetAtom } from "jotai";
-import { Suspense, useEffect } from "react";
+import { useAtomValue, useSetAtom } from "jotai";
+import { lazy, Suspense, useEffect } from "react";
 import { activeViewAtom } from "@/atoms/view";
-import {
-  //   DashboardView,
-  DatasetsView,
-  VisualsView,
-  ActivityView,
-  HomeView,
-} from "@/containers";
+import { HomeView } from "@/containers";
 import { setBreadcrumbsAtom } from "@/atoms/breadcrumbs";
+import { ErrorBoundary } from "./ErrorBoundary";
+import NotFound from "./404";
+import { useViewSync } from "@/hooks/useViewAsync";
+const VisualsView = lazy(() => import("@/containers/visualizations/Visuals"));
+const DatasourceView = lazy(
+  () => import("@/containers/datasources/Datasources")
+);
+const ActivityView = lazy(() => import("@/containers/activity/Activity"));
+const ChangeLog = lazy(() => import("@/containers/updates/ChangelogPage"));
+const DatasetsView = lazy(() => import("@/containers/dataset/Dataset"));
 
 /**
  * A component that renders the current view based on the activeViewAtom.
@@ -21,15 +25,17 @@ import { setBreadcrumbsAtom } from "@/atoms/breadcrumbs";
  * until the view component is fully loaded.
  */
 export default function ViewRenderer() {
-  const [view] = useAtom(activeViewAtom);
-
+  useViewSync();
+  const view = useAtomValue(activeViewAtom).view;
   const setBreadcrumbs = useSetAtom(setBreadcrumbsAtom);
 
   const Component = {
     dashboard: HomeView,
-    datasets: DatasetsView,
+    datasources: DatasourceView,
     visuals: VisualsView,
     activity: ActivityView,
+    changelogs: ChangeLog,
+    dataset: DatasetsView,
   }[view];
 
   useEffect(() => {
@@ -39,8 +45,10 @@ export default function ViewRenderer() {
   }, [view, setBreadcrumbs]);
 
   return (
-    <Suspense fallback={<div className="p-4 text-muted">Loading view…</div>}>
-      <Component />
-    </Suspense>
+    <ErrorBoundary>
+      <Suspense fallback={<div className="p-4 text-muted">Loading view…</div>}>
+        {Component ? <Component /> : <NotFound />}
+      </Suspense>
+    </ErrorBoundary>
   );
 }
