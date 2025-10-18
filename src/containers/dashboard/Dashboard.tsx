@@ -1,3 +1,4 @@
+import { SiteFooter } from "@/components/footer/Footer";
 import { SiteHeader } from "@/components/header/MainHeader";
 import { AppSidebar } from "@/components/sidebar/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
@@ -29,6 +30,7 @@ export default function Dashboard({ children }: { children: React.ReactNode }) {
             </div>
           </div>
         </div>
+        <SiteFooter />
       </SidebarInset>
     </SidebarProvider>
   );

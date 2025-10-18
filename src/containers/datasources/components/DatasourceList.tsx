@@ -40,7 +40,7 @@ import {
   ButtonGroup,
   ButtonGroupSeparator,
 } from "@/components/ui/button-group";
-import { listOpfsRoot } from "@/core/storage/opfs.utils";
+import { listOpfsRoot, readOpfsFile } from "@/core/storage/opfs.utils";
 import { activeViewAtom } from "@/atoms/view";
 
 /**
@@ -72,6 +72,15 @@ const DatasetItem = memo(function DatasetItem({
     console.log("Open file viewer");
     const entries = await listOpfsRoot();
     console.table(entries);
+
+    if (entries.length) {
+      const firstFile = entries.find((e) => e.kind === "file");
+      console.log("First file", firstFile);
+      if (firstFile) {
+        const content = await readOpfsFile(firstFile.name);
+        console.log("File content:", content);
+      }
+    }
   };
 
   return (

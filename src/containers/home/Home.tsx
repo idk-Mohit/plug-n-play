@@ -1,9 +1,9 @@
 import ChartPanel from "@/charts/ChartPanel";
 import { useEffect, useMemo, useState } from "react";
-import { ResourceStatsPanel } from "../analytics/Resources";
 import { SectionCards } from "@/components/card/SectionCard";
-import type { timeseriesdata } from "@/types/data.types";
+import type { AnyRecord, timeseriesdata } from "@/types/data.types";
 import { ChartFullSettingsDrawer } from "@/charts/settings/ChartFullSettingDrawer";
+import { DataTable } from "@/components/table/SimpleTable";
 
 const Home = () => {
   const [data, setData] = useState<timeseriesdata[]>([]);
@@ -33,7 +33,7 @@ const Home = () => {
     <>
       <div className="flex flex-1 gap-4 flex-wrap">
         <ChartPanel data={data} id="chart-1" title="Chart 1" />
-        <ResourceStatsPanel />
+        <DataTable data={data as unknown as AnyRecord[]} />
       </div>
       <SectionCards />
 
