@@ -8,7 +8,6 @@ export interface Dataset {
   id: string;
   name: string;
   type: DatasetType;
-  data?: unknown; // keep raw parsed JSON; for CSV you'd store rows
   size: string; // e.g., "12.3 KB"
   records?: number; // number of rows/items if array-like
   uploadDate: string; // ISO string

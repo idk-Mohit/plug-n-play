@@ -49,7 +49,7 @@ const preview = (val: unknown, max = 120) => {
 
 function inferColumns<TData extends AnyRecord>(
   data: TData[],
-  maxPreviewLen: number
+  maxPreviewLen: number,
 ): ColumnDef<TData, unknown>[] {
   const first = data[0];
   if (!first) return [];
@@ -71,7 +71,6 @@ function inferColumns<TData extends AnyRecord>(
         </span>
       );
     },
-    // give every inferred column a sane default width
     size: 160,
     minSize: 80,
     maxSize: 500,
@@ -94,7 +93,7 @@ export function DataTable<TData extends AnyRecord, TValue = unknown>({
 
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
+    [],
   );
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
@@ -162,7 +161,7 @@ export function DataTable<TData extends AnyRecord, TValue = unknown>({
                       ? null
                       : flexRender(
                           header.column.columnDef.header,
-                          header.getContext()
+                          header.getContext(),
                         )}
                   </TableHead>
                 ))}
@@ -205,7 +204,7 @@ export function DataTable<TData extends AnyRecord, TValue = unknown>({
                         >
                           {flexRender(
                             cell.column.columnDef.cell,
-                            cell.getContext()
+                            cell.getContext(),
                           )}
                         </TableCell>
                       ))}

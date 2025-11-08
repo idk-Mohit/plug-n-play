@@ -69,7 +69,6 @@ const DatasetItem = memo(function DatasetItem({
   const Icon = getFileIcon(dataset.type);
 
   const openFileViewer = async () => {
-    console.log("Open file viewer");
     const entries = await listOpfsRoot();
     console.table(entries);
 
@@ -212,13 +211,13 @@ export function DatasetList() {
   /** Format ISO string with the shared formatter. */
   const formatDate = useCallback(
     (value: string | number | Date | null | undefined) => safeFormatDate(value),
-    []
+    [],
   );
 
   /** The currently selected (expanded) dataset, if any. */
   const selectedDataset = useMemo(
     () => datasets.find((d) => d.id === expandedDataset) ?? null,
-    [datasets, expandedDataset]
+    [datasets, expandedDataset],
   );
 
   /**
@@ -261,7 +260,7 @@ export function DatasetList() {
         setDeleteDataSet(null);
       }
     },
-    [setDatasets]
+    [setDatasets],
   );
 
   if (datasets.length === 0) {

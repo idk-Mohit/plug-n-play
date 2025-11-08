@@ -1,6 +1,5 @@
 import ChartPanel from "@/charts/ChartPanel";
 import { useEffect, useMemo, useState } from "react";
-import { SectionCards } from "@/components/card/SectionCard";
 import type { AnyRecord, timeseriesdata } from "@/types/data.types";
 import { ChartFullSettingsDrawer } from "@/charts/settings/ChartFullSettingDrawer";
 import { DataTable } from "@/components/table/SimpleTable";
@@ -35,8 +34,6 @@ const Home = () => {
         <ChartPanel data={data} id="chart-1" title="Chart 1" />
         <DataTable data={data as unknown as AnyRecord[]} />
       </div>
-      <SectionCards />
-
       <ChartFullSettingsDrawer id="chart-1" />
     </>
   );
