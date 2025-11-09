@@ -1,16 +1,35 @@
+import type { DatasetMeta } from "@/atoms/dataset.atom";
+import type { uuid } from "@/types/data.types";
+
 // path: src/core/storage/localStorage.ts
 const KEY = "datasources"; // e.g. [{"id":"ds-1","name":"Sales 2024"}, ...]
 
-export function listDatasets() {
-  try {
-    const raw = localStorage.getItem(KEY);
-    if (!raw) return [];
-    const arr = JSON.parse(raw);
-    if (!Array.isArray(arr)) return [];
-    // optional: normalize
-    return arr.map((x) => ({ id: String(x.id), name: String(x.name || x.id) }));
-  } catch (e) {
-    console.error("localStore.listDatasets error:", e);
-    return [];
+class LocalStoreUtils {
+  public static getDatasources() {
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (!raw) return null;
+      const datasources = JSON.parse(raw);
+      if (!Array.isArray(datasources)) return null;
+      return datasources;
+    } catch (e) {
+      console.error("localStore.getDatasources error:", e);
+      return null;
+    }
   }
 }
+
+export const listDatasets = () => {
+  const datasources = LocalStoreUtils.getDatasources();
+  if (!datasources) return [];
+  return datasources.map((x) => ({
+    id: String(x.id),
+    name: String(x.name || x.id),
+  }));
+};
+
+export const metaDataFromDatasetId = (id: uuid): DatasetMeta | null => {
+  const datasources = LocalStoreUtils.getDatasources();
+  if (!datasources) return null;
+  return datasources.find((x) => String(x.id) === String(id));
+};

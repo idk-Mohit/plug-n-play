@@ -3,7 +3,7 @@ import { FileText } from "lucide-react";
 import CardComponent from "@/components/card/CardComponent";
 import FileUpload from "./components/fileUpload";
 import JsonUpload from "./components/JsonUpload";
-import { DatasetList } from "./components/DatasourceList";
+import { DatasourceList } from "./components/DatasourceList";
 
 export default function DatasetsPage() {
   const [mode, setMode] = useState<"idle" | "json">("idle");
@@ -42,7 +42,7 @@ export default function DatasetsPage() {
         {mode === "json" && <JsonUpload setMode={setMode} />}
 
         <div className="space-y-3">
-          <DatasetList />
+          <DatasourceList />
         </div>
       </div>
     </div>

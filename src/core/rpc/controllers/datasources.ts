@@ -4,7 +4,7 @@
 import type { MiniGrpc } from "../config/client";
 
 // Lightweight DTO type
-export type DatasetMeta = { id: string; name: string; modifiedAt?: string };
+export type DatasetRef = { id: string; name: string; modifiedAt?: string };
 
 export const datasetsController = {
   /**
@@ -12,7 +12,7 @@ export const datasetsController = {
    * - returns an array of DatasetMeta
    * - does minimal normalization/validation
    */
-  async getList(rpc: MiniGrpc): Promise<DatasetMeta[]> {
+  async getList(rpc: MiniGrpc): Promise<DatasetRef[]> {
     if (!rpc) throw new Error("rpc client required");
 
     // call RPC (LocalStore implemented in your worker / dispatchLocal)
@@ -23,7 +23,7 @@ export const datasetsController = {
       throw new Error("Malformed response: expected array");
     }
 
-    const normalized: DatasetMeta[] = raw.map(
+    const normalized: DatasetRef[] = raw.map(
       (item: { id?: string; name?: string; modifiedAt?: string }) => {
         // Be permissive but normalize types
         return {
