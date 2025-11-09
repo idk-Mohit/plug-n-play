@@ -1,5 +1,5 @@
 import ChartPanel from "@/charts/ChartPanel";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { AnyRecord, timeseriesdata } from "@/types/data.types";
 import { ChartFullSettingsDrawer } from "@/charts/settings/ChartFullSettingDrawer";
 import { DataTable } from "@/components/table/SimpleTable";
@@ -12,15 +12,35 @@ const Home = () => {
   const activeDataSet = useAtomValue(activeDatasetAtom);
   const [data, setData] = useState<timeseriesdata[]>([]);
 
+  const worker = useMemo(
+    () =>
+      new Worker(new URL("@/worker/dataWorker.ts", import.meta.url), {
+        type: "module",
+      }),
+    []
+  );
+
   useEffect(() => {
     console.log("re-loading if active data set changes");
-    if (!activeDataSet) return;
-    (async () => {
-      const _data = await dataEngine.getDataset(activeDataSet.id ?? "");
-      setData(Array.isArray(_data) ? _data : [_data]);
-      if (_data) setLoading(false);
-    })();
-  }, [activeDataSet]);
+    if (!activeDataSet) {
+      worker.postMessage({
+        task: "generate_series",
+        payload: { count: 100 },
+      });
+
+      worker.onmessage = (e) => {
+        const { status, data } = e.data;
+        if (status === "success") {
+          setData(data);
+        }
+      };
+    } else
+      (async () => {
+        const _data = await dataEngine.getDataset(activeDataSet.id ?? "");
+        setData(Array.isArray(_data) ? _data : [_data]);
+        if (_data) setLoading(false);
+      })();
+  }, [activeDataSet, worker]);
 
   return (
     <>

@@ -1,4 +1,4 @@
-import { persistedDatasetsAtom, type Dataset } from "@/atoms/dataset.atom";
+import { persistedDatasetsAtom, type DatasetMeta } from "@/atoms/dataset.atom";
 import { Loader } from "@/components/loader";
 import { cn } from "@/lib/utils";
 import { useAtom } from "jotai";
@@ -81,7 +81,7 @@ const FileUpload = () => {
         const id = crypto.randomUUID();
         const fileName = file.name.replace(/\.[^/.]+$/, "");
 
-        const ds: Dataset = {
+        const ds: DatasetMeta = {
           id,
           name: file.name.replace(/\.[^/.]+$/, ""), // Remove extension
           type: "csv",

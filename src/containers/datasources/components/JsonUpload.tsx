@@ -1,5 +1,5 @@
 // path: src/components/JsonUpload.tsx
-import { persistedDatasetsAtom, type Dataset } from "@/atoms/dataset.atom";
+import { persistedDatasetsAtom, type DatasetMeta } from "@/atoms/dataset.atom";
 import { Loader } from "@/components/loader";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -51,7 +51,7 @@ const JsonUpload = ({ setMode }: JsonUploadProps) => {
       const id = crypto.randomUUID();
       await dataEngine.saveDataset(id, data);
 
-      const ds: Dataset = {
+      const ds: DatasetMeta = {
         id,
         name: `Dataset ${datasets.length + 1}`,
         type: "json",
