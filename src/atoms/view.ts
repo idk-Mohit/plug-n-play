@@ -1,15 +1,3 @@
-// // atoms/view.ts
-// import { atomWithStorage } from "jotai/utils";
-
-// export const activeViewAtom = atomWithStorage<
-//   | "dashboard"
-//   | "datasources"
-//   | "visuals"
-//   | "activity"
-//   | "changelogs"
-//   | "dataset"
-// >("activeView", "dashboard");
-
 // path: src/atoms/view.ts
 import { atomWithStorage } from "jotai/utils";
 

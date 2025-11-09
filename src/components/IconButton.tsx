@@ -6,9 +6,11 @@ interface IconButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   icon: React.ElementType;
   text?: string;
+  iconClassName?: string;
   textLocation?: "before" | "after";
   variant?: "default" | "secondary" | "ghost" | "outline" | "destructive";
   size?: "sm" | "default" | "lg" | "icon";
+  iconSize?: number;
 }
 
 /**
@@ -23,6 +25,8 @@ const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
       variant = "secondary",
       size = "sm",
       className,
+      iconSize = 14,
+      iconClassName,
       onClick,
       ...props
     },
@@ -45,7 +49,11 @@ const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
         {...props}
       >
         {text && textLocation === "before" && <span>{text}</span>}
-        <Icon className="h-4 w-4 text-primary" aria-hidden="true" />
+        <Icon
+          className={cn("h-4 w-4 text-primary", iconClassName)}
+          aria-hidden="true"
+          size={iconSize}
+        />
         {text && textLocation === "after" && <span>{text}</span>}
       </Button>
     );

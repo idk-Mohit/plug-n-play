@@ -22,12 +22,14 @@ import {
 } from "@/components/ui/table";
 import type { AnyRecord } from "@/types/data.types";
 import { DataTableColumnHeader, DataTableViewOptions } from "./column-header";
+import { Loader } from "../loader";
 
 interface DataTableProps<TData extends AnyRecord, TValue = unknown> {
   data: TData[];
   columns?: ColumnDef<TData, TValue>[];
   maxPreviewLen?: number;
   height?: number | string;
+  loading?: boolean;
 }
 
 const isPrimitive = (v: unknown) =>
@@ -71,7 +73,6 @@ function inferColumns<TData extends AnyRecord>(
         </span>
       );
     },
-    // give every inferred column a sane default width
     size: 160,
     minSize: 80,
     maxSize: 500,
@@ -83,6 +84,7 @@ export function DataTable<TData extends AnyRecord, TValue = unknown>({
   data,
   maxPreviewLen = 120,
   height = 400,
+  loading = false,
 }: DataTableProps<TData, TValue>) {
   const columns = useMemo<ColumnDef<TData, TValue>[]>(() => {
     if (columnsProp && columnsProp.length) return columnsProp;
@@ -222,6 +224,25 @@ export function DataTable<TData extends AnyRecord, TValue = unknown>({
                   </TableRow>
                 )}
               </>
+            ) : loading ? (
+              // <TableRow>
+              //   <TableCell
+              //     colSpan={columns.length || 1}
+              //     className="text-center"
+              //   >
+              //     <Loader key={Math.random()} type="grid" size={64} />
+              //   </TableCell>
+              // </TableRow>
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length || 1}
+                  className="!p-0 h-[400px] align-center"
+                >
+                  <div className="flex justify-center items-center h-full w-full">
+                    <Loader key={Math.random()} type="grid" size={64} />
+                  </div>
+                </TableCell>
+              </TableRow>
             ) : (
               <TableRow>
                 <TableCell
