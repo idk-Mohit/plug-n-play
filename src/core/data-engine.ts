@@ -7,10 +7,17 @@ export interface DataEngine {
 
 // path: src/core/data-engine.ts
 import { idbSave, idbGet, idbDelete } from "./storage/indexdb";
+import { metaDataFromDatasetId } from "./storage/localStorage";
 
 type uuid = string;
 
 export const dataEngine = {
+  // local-storage
+  getDatasetMetaById(id: uuid) {
+    return metaDataFromDatasetId(id);
+  },
+
+  // idb
   async saveDataset(id: uuid, data: unknown) {
     await idbSave(`dataset:${id}`, data);
   },

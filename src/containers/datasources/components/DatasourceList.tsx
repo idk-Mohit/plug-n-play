@@ -1,16 +1,6 @@
-import React, { memo, useCallback, useMemo, useState } from "react";
-import {
-  FileText,
-  Database,
-  Trash2,
-  Calendar,
-  HardDrive,
-  Hash,
-  Table,
-  Fullscreen,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { persistedDatasetsAtom, type Dataset } from "@/atoms/dataset.atom";
+import React, { useCallback, useMemo, useState } from "react";
+import { Database, Fullscreen } from "lucide-react";
+import { persistedDatasetsAtom } from "@/atoms/dataset.atom";
 import { useAtom, useSetAtom } from "jotai";
 import {
   Dialog,
@@ -36,157 +26,8 @@ import type { AnyRecord, uuid } from "@/types/data.types";
 import { dataEngine } from "@/core/data-engine";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { safeFormatDate } from "@/core/date.utils";
-import {
-  ButtonGroup,
-  ButtonGroupSeparator,
-} from "@/components/ui/button-group";
-import { listOpfsRoot, readOpfsFile } from "@/core/storage/opfs.utils";
 import { activeViewAtom } from "@/atoms/view";
-
-/**
- * Choose an icon based on dataset type.
- */
-const getFileIcon = (type: string) => (type === "JSON" ? FileText : Database);
-
-/**
- * A single dataset list item, separated and memoized to minimize re-renders.
- */
-const DatasetItem = memo(function DatasetItem({
-  dataset,
-  isExpanded,
-  onToggle,
-  onAskDelete,
-  formatDate,
-  onShowGrid,
-}: {
-  dataset: Dataset;
-  isExpanded: boolean;
-  onToggle: () => void;
-  onAskDelete: () => void;
-  formatDate: (iso: string) => string;
-  onShowGrid: (e: React.MouseEvent) => void;
-}) {
-  const Icon = getFileIcon(dataset.type);
-
-  const openFileViewer = async () => {
-    const entries = await listOpfsRoot();
-    console.table(entries);
-
-    if (entries.length) {
-      const firstFile = entries.find((e) => e.kind === "file");
-      console.log("First file", firstFile);
-      if (firstFile) {
-        const content = await readOpfsFile(firstFile.name);
-        console.log("File content:", content);
-      }
-    }
-  };
-
-  return (
-    <div className="bg-card rounded-lg border border-border hover:shadow-md transition-all duration-200">
-      {/* Item header (click to expand/collapse) */}
-      <div className="p-4 cursor-pointer" onClick={onToggle}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-md bg-primary/10">
-              <Icon className="h-4 w-4 text-primary" aria-hidden="true" />
-            </div>
-            <div>
-              <h4 className="font-medium text-card-foreground">
-                {dataset.name}
-              </h4>
-              <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
-                <span className="flex items-center gap-1">
-                  <FileText className="h-3 w-3" aria-hidden="true" />
-                  {dataset.type}
-                </span>
-                <span className="flex items-center gap-1">
-                  <Calendar className="h-3 w-3" aria-hidden="true" />
-                  {formatDate(dataset.uploadDate)}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <div className="text-right text-sm">
-              <div className="flex items-center gap-1 text-muted-foreground">
-                <HardDrive className="h-3 w-3" aria-hidden="true" />
-                {dataset.size}
-              </div>
-              {dataset.records ? (
-                <div className="flex items-center gap-1 text-muted-foreground mt-1">
-                  <Hash className="h-3 w-3" aria-hidden="true" />
-                  {dataset.records} records
-                </div>
-              ) : null}
-            </div>
-
-            {/* Delete trigger (stops row toggle) */}
-            <Button
-              aria-label={`Delete dataset ${dataset.name}`}
-              variant="ghost"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                onAskDelete();
-              }}
-              className="cursor-pointer text-destructive hover:text-destructive hover:bg-destructive/10"
-            >
-              <Trash2 className="h-4 w-4" aria-hidden="true" />
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Expanded content */}
-      {isExpanded && (
-        <div className="border-t border-border p-4 bg-muted/20">
-          <h5 className="text-sm font-medium text-card-foreground mb-2 flex items-center gap-2 justify-between">
-            Data Preview
-            <ButtonGroup>
-              <Button
-                aria-label="Open table view"
-                variant="secondary"
-                size="sm"
-                onClick={onShowGrid}
-                className="text-primary hover:text-destructive hover:bg-destructive/10 cursor-pointer flex align-center gap-2"
-              >
-                Table View{" "}
-                <Table className="h-4 w-4 text-primary" aria-hidden="true" />
-              </Button>
-              {dataset.type === "csv" ? (
-                <>
-                  <ButtonGroupSeparator />
-                  <Button
-                    aria-label="Open OPFS Directory"
-                    variant="secondary"
-                    size="sm"
-                    onClick={openFileViewer}
-                    className="text-primary hover:text-destructive hover:bg-destructive/10 cursor-pointer flex align-center gap-2"
-                  >
-                    File Viewer{" "}
-                    <Table
-                      className="h-4 w-4 text-primary"
-                      aria-hidden="true"
-                    />
-                  </Button>
-                </>
-              ) : null}
-            </ButtonGroup>
-          </h5>
-
-          {/* Preview JSON (rendered as code, truncated for large arrays by parent) */}
-          <pre className="text-xs text-muted-foreground bg-background rounded p-3 overflow-auto max-h-40">
-            {/* The content is injected by the parent via memoized string to avoid repeated stringify here */}
-            {/* We keep this container minimal to avoid unnecessary work */}
-            {JSON.stringify(dataset.preview, null, 2)}
-          </pre>
-        </div>
-      )}
-    </div>
-  );
-});
+import DatasourceItem from "./DatasourceItem";
 
 /**
  * DatasetList
@@ -194,7 +35,7 @@ const DatasetItem = memo(function DatasetItem({
  * Displays a list of datasets with expandable previews, a table view modal,
  * and a delete confirmation alert dialog.
  */
-export function DatasetList() {
+export function DatasourceList() {
   const setView = useSetAtom(activeViewAtom);
   const [datasets, setDatasets] = useAtom(persistedDatasetsAtom);
   // Which dataset row is expanded
@@ -211,13 +52,13 @@ export function DatasetList() {
   /** Format ISO string with the shared formatter. */
   const formatDate = useCallback(
     (value: string | number | Date | null | undefined) => safeFormatDate(value),
-    [],
+    []
   );
 
   /** The currently selected (expanded) dataset, if any. */
   const selectedDataset = useMemo(
     () => datasets.find((d) => d.id === expandedDataset) ?? null,
-    [datasets, expandedDataset],
+    [datasets, expandedDataset]
   );
 
   /**
@@ -260,7 +101,7 @@ export function DatasetList() {
         setDeleteDataSet(null);
       }
     },
-    [setDatasets],
+    [setDatasets]
   );
 
   if (datasets.length === 0) {
@@ -293,7 +134,7 @@ export function DatasetList() {
               const isExpanded = expandedDataset === dataset.id;
               return (
                 <div key={dataset.id}>
-                  <DatasetItem
+                  <DatasourceItem
                     dataset={dataset}
                     isExpanded={isExpanded}
                     onToggle={() =>

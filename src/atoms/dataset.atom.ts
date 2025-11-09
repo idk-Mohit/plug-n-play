@@ -1,10 +1,11 @@
 // path: src/atoms/dataset.atom.ts
+import type { DatasetRef } from "@/core/rpc/controllers/datasources";
 import type { uuid } from "@/types/data.types";
 import { atomWithStorage } from "jotai/utils";
 
 export type DatasetType = "json" | "csv";
 
-export interface Dataset {
+export interface DatasetMeta {
   id: string;
   name: string;
   type: DatasetType;
@@ -15,7 +16,12 @@ export interface Dataset {
   storageKey: uuid;
 }
 
-export const persistedDatasetsAtom = atomWithStorage<Dataset[]>(
+export const persistedDatasetsAtom = atomWithStorage<DatasetMeta[]>(
   "datasources",
   []
+);
+
+export const activeDatasetAtom = atomWithStorage<DatasetRef | null>(
+  "activeDataset",
+  null
 );

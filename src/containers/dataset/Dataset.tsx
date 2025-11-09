@@ -59,7 +59,7 @@ export default function Dataset() {
 
       <main className="mx-auto pt-6">
         <DataTable
-          height={"calc(100dvh - 300px)"}
+          height={"calc(100dvh - 340px)"}
           columns={[]} // you can plug real columns later
           data={rows as AnyRecord[]}
         />
