@@ -1,0 +1,3 @@
+#!/bin/sh
+# Minimal pre-push hook that runs the build and aborts push on failure
+pnpm run build
