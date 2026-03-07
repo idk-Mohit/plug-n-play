@@ -1,4 +1,4 @@
-import { persistedDatasetsAtom, type Dataset } from "@/atoms/dataset.atom";
+import { persistedDatasetsAtom, type Dataset } from "@/state/data/dataset";
 import { Loader } from "@/components/loader";
 import { cn } from "@/lib/utils";
 import { useAtom } from "jotai";

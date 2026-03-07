@@ -87,7 +87,7 @@ export function ResourceStatsPanel() {
 
   useEffect(() => {
     const worker = new Worker(
-      new URL("@/worker/dataWorker.ts", import.meta.url),
+      new URL("@/compute/workers/dataWorker.ts", import.meta.url),
       {
         type: "module",
       }

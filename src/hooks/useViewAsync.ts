@@ -1,6 +1,6 @@
 // path: src/hooks/useViewSync.ts
 import { useAtom } from "jotai";
-import { activeViewAtom, type ViewName } from "@/atoms/view";
+import { activeViewAtom, type ViewName } from "@/state/ui/view";
 import { useEffect } from "react";
 
 export function useViewSync() {

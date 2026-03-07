@@ -9,7 +9,7 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { useSetAtom } from "jotai";
-import { chartSettingsAtomFamily } from "@/atoms/chart-setting";
+import { chartSettingsAtomFamily } from "@/state/ui/chart-setting";
 
 interface HslColor {
   h: number;

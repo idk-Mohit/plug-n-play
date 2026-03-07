@@ -1,8 +1,8 @@
 import { useAtomValue, useSetAtom } from "jotai";
 import { lazy, Suspense, useEffect } from "react";
-import { activeViewAtom } from "@/atoms/view";
+import { activeViewAtom } from "@/state/ui/view";
 import { HomeView } from "@/containers";
-import { setBreadcrumbsAtom } from "@/atoms/breadcrumbs";
+import { setBreadcrumbsAtom } from "@/state/ui/breadcrumbs";
 import { ErrorBoundary } from "./ErrorBoundary";
 import NotFound from "./404";
 import { useViewSync } from "@/hooks/useViewAsync";

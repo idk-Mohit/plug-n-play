@@ -13,8 +13,8 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { useAtomValue, useSetAtom } from "jotai";
-import { sidebarTransitionAtom } from "@/atoms/layout";
-import { activeViewAtom } from "@/atoms/view";
+import { sidebarTransitionAtom } from "@/state/ui/layout";
+import { activeViewAtom } from "@/state/ui/view";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const sidebarRef = React.useRef<HTMLDivElement>(null);

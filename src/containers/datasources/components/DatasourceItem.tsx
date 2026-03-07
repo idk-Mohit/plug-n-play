@@ -10,7 +10,7 @@ import {
   Pencil,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { type DatasetMeta } from "@/atoms/dataset.atom";
+import { type DatasetMeta } from "@/state/data/dataset";
 import {
   ButtonGroup,
   ButtonGroupSeparator,

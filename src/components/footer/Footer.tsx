@@ -9,8 +9,8 @@ import {
 import { useRpc } from "@/hooks/useRPC";
 import { useCallback, useEffect, useState } from "react";
 import { useAtom, useAtomValue } from "jotai";
-import { activeDatasetAtom, type DatasetMeta } from "@/atoms/dataset.atom";
-import { activeViewAtom } from "@/atoms/view";
+import { activeDatasetAtom, type DatasetMeta } from "@/state/data/dataset";
+import { activeViewAtom } from "@/state/ui/view";
 import { dataEngine } from "@/core/data-engine";
 import type { uuid } from "@/types/data.types";
 import { FooterRowCount, UploadDate } from "./FooterAtoms";

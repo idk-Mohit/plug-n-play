@@ -1,5 +1,5 @@
 // path: src/components/JsonUpload.tsx
-import { persistedDatasetsAtom, type Dataset } from "@/atoms/dataset.atom";
+import { persistedDatasetsAtom, type Dataset } from "@/state/data/dataset";
 import { Loader } from "@/components/loader";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";

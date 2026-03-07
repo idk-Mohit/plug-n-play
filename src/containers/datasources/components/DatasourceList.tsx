@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useState } from "react";
 import { Database, Fullscreen } from "lucide-react";
-import { persistedDatasetsAtom } from "@/atoms/dataset.atom";
+import { persistedDatasetsAtom } from "@/state/data/dataset";
 import { useAtom, useSetAtom } from "jotai";
 import {
   Dialog,
@@ -26,7 +26,7 @@ import type { AnyRecord, uuid } from "@/types/data.types";
 import { dataEngine } from "@/core/data-engine";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { safeFormatDate } from "@/core/date.utils";
-import { activeViewAtom } from "@/atoms/view";
+import { activeViewAtom } from "@/state/ui/view";
 import DatasourceItem from "./DatasourceItem";
 
 /**
