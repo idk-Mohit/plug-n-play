@@ -1,16 +1,17 @@
 /**
  * Chart Quick Settings
- * 
+ *
  * Component for displaying quick chart configuration options
  * in a compact interface.
  */
 
 import { useAtom } from "jotai";
 import {
-  type GridType,
   chartSettingsAtomFamily,
   chartFullSettingsDrawerAtom,
+  type GridType,
 } from "@/state/ui/chart-setting";
+import { GridType as GridTypeConst } from "@/enums/chart.enums";
 import { Button } from "@/components/ui/button";
 import { Settings } from "lucide-react";
 
@@ -19,7 +20,9 @@ interface ChartQuickSettingsProps {
 }
 
 export function ChartQuickSettings({ chartId }: ChartQuickSettingsProps) {
-  const [chartSettings, setChartSettings] = useAtom(chartSettingsAtomFamily(chartId));
+  const [chartSettings, setChartSettings] = useAtom(
+    chartSettingsAtomFamily(chartId),
+  );
   const [, setDrawerState] = useAtom(chartFullSettingsDrawerAtom);
 
   const openFullSettings = () => {
@@ -27,7 +30,12 @@ export function ChartQuickSettings({ chartId }: ChartQuickSettingsProps) {
   };
 
   const toggleGrid = () => {
-    const gridOptions: GridType[] = ["none", "horizontal", "vertical", "both"];
+    const gridOptions: GridType[] = [
+      GridTypeConst.NONE,
+      GridTypeConst.HORIZONTAL,
+      GridTypeConst.VERTICAL,
+      GridTypeConst.BOTH,
+    ];
     const currentIndex = gridOptions.indexOf(chartSettings.grid);
     const nextIndex = (currentIndex + 1) % gridOptions.length;
     setChartSettings({ ...chartSettings, grid: gridOptions[nextIndex] });
@@ -43,7 +51,7 @@ export function ChartQuickSettings({ chartId }: ChartQuickSettingsProps) {
       >
         Grid: {chartSettings.grid}
       </Button>
-      
+
       <Button
         variant="ghost"
         size="sm"

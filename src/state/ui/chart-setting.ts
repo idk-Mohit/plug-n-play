@@ -1,6 +1,6 @@
 /**
  * Chart Settings State Management
- * 
+ *
  * This module contains Jotai atoms for managing chart configuration and settings.
  * Uses atomFamily to create per-chart state instances.
  */
@@ -8,99 +8,50 @@
 import { atom } from "jotai";
 import { atomFamily } from "jotai/utils";
 
+import {
+  ChartType,
+  GridType,
+  InteractionMode,
+  TimeFormat,
+  AnimationType,
+  PathCurveType,
+  curveMap,
+} from "@/enums/chart.enums";
+
 /**
  * Supported chart types for visualization
  */
-export type ChartType = "line" | "area" | "scatter";
+export type { ChartType };
 
 /**
  * Grid display options for charts
  */
-export type GridType = "vertical" | "horizontal" | "both" | "none";
+export type { GridType };
 
 /**
  * User interaction modes for charts
  */
-export type InteractionMode = "none" | "pan" | "zoom" | "both";
+export type { InteractionMode };
 
 /**
  * Time formatting options for time-based axes
  */
-export type TimeFormat = "auto" | "HH:mm" | "hh:mm a" | "MM/DD" | string;
+export type { TimeFormat };
 
 /**
  * Animation types for chart transitions
  */
-export type AnimationType = "fade" | "draw" | "grow" | "none";
-
-// D3 curve imports for path rendering
-import {
-  curveBasis,
-  curveBasisClosed,
-  curveBasisOpen,
-  curveCardinal,
-  curveCardinalClosed,
-  curveCardinalOpen,
-  curveCatmullRom,
-  curveCatmullRomClosed,
-  curveCatmullRomOpen,
-  curveLinear,
-  curveLinearClosed,
-  curveMonotoneX,
-  curveMonotoneY,
-  curveNatural,
-  curveStep,
-  curveStepAfter,
-  curveStepBefore,
-  type CurveFactory,
-} from "d3";
+export type { AnimationType };
 
 /**
- * Available curve types for line/area chart paths
- * Maps to D3 curve factories for smooth rendering
+ * Path curve types for line/area charts
  */
-export type PathCurveType =
-  | "linear"
-  | "linearClosed"
-  | "basis"
-  | "basisClosed"
-  | "basisOpen"
-  | "cardinal"
-  | "cardinalClosed"
-  | "cardinalOpen"
-  | "catmullRom"
-  | "catmullRomClosed"
-  | "catmullRomOpen"
-  | "monotoneX"
-  | "monotoneY"
-  | "natural"
-  | "step"
-  | "stepBefore"
-  | "stepAfter";
+export type { PathCurveType };
 
 /**
  * Maps curve type strings to D3 curve factory functions
- * Used to generate smooth paths for line and area charts
  */
-export const curveMap: Record<PathCurveType, CurveFactory> = {
-  linear: curveLinear,
-  linearClosed: curveLinearClosed,
-  basis: curveBasis,
-  basisClosed: curveBasisClosed,
-  basisOpen: curveBasisOpen,
-  cardinal: curveCardinal,
-  cardinalClosed: curveCardinalClosed,
-  cardinalOpen: curveCardinalOpen,
-  catmullRom: curveCatmullRom,
-  catmullRomClosed: curveCatmullRomClosed,
-  catmullRomOpen: curveCatmullRomOpen,
-  monotoneX: curveMonotoneX,
-  monotoneY: curveMonotoneY,
-  natural: curveNatural,
-  step: curveStep,
-  stepBefore: curveStepBefore,
-  stepAfter: curveStepAfter,
-};
+export { curveMap };
 
 /**
  * Complete chart configuration interface
@@ -147,7 +98,7 @@ export interface ChartSettings {
 /**
  * Atom family for managing individual chart settings
  * Creates a separate atom for each chart ID, allowing independent configuration
- * 
+ *
  * @param id - Unique identifier for the chart
  * @returns Atom containing chart settings with sensible defaults
  */
@@ -155,8 +106,8 @@ export const chartSettingsAtomFamily = atomFamily((id: string) =>
   atom<ChartSettings>({
     id,
     title: "Untitled Chart",
-    type: "area",
-    grid: "none",
+    type: ChartType.AREA,
+    grid: GridType.NONE,
     showAxes: true,
     stroke: "hsl(201 12% 41%)",
     strokeWidth: 2,
@@ -164,14 +115,14 @@ export const chartSettingsAtomFamily = atomFamily((id: string) =>
     showDataPoints: true,
     animation: {
       enabled: true,
-      type: "draw",
+      type: AnimationType.DRAW,
       duration: 800,
     },
-    pathCurve: "natural",
-    timeFormat: "auto",
-    interaction: "none",
+    pathCurve: PathCurveType.NATURAL,
+    timeFormat: TimeFormat.AUTO,
+    interaction: InteractionMode.NONE,
     tooltip: true,
-  })
+  }),
 );
 
 /**

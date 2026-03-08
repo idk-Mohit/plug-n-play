@@ -11,15 +11,16 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
   const activeDataSet = useAtomValue(activeDatasetAtom);
   const [data, setData] = useState<timeseriesdata[]>([]);
+  const dataCount = 250;
 
   // Generate default data using worker when no dataset is active
   const generateDefaultData = async () => {
     setLoading(true);
-    
+
     try {
       const worker = new Worker(
         new URL("@/compute/workers/dataWorker.ts", import.meta.url),
-        { type: "module" }
+        { type: "module" },
       );
 
       worker.onmessage = (e) => {
@@ -37,17 +38,21 @@ const Home = () => {
         }
       };
 
-      worker.onerror = (_error) => {
+      worker.onerror = (error) => {
         // Handle worker error silently
         setLoading(false);
         worker.terminate();
+        console.error(error);
       };
 
       // Send the request immediately after creating the worker
-      worker.postMessage({ task: "generate_series", payload: { count: 10000 } });
-
-    } catch (_error) {
+      worker.postMessage({
+        task: "generate_series",
+        payload: { count: dataCount },
+      });
+    } catch (error) {
       setLoading(false);
+      console.error(error);
     }
   };
 
@@ -60,8 +65,9 @@ const Home = () => {
           const formattedData = Array.isArray(_data) ? _data : [_data];
           setData(formattedData);
           setLoading(false);
-        } catch (_error) {
+        } catch (error) {
           setLoading(false);
+          console.error(error);
         }
       })();
     } else {
@@ -73,10 +79,14 @@ const Home = () => {
   return (
     <>
       <div className="flex flex-1 gap-4 flex-wrap">
-        <ChartPanel 
-          data={data} 
-          id="chart-1" 
-          title={activeDataSet ? `Dataset: ${activeDataSet.name}` : "Default Sample Data (100 points)"} 
+        <ChartPanel
+          data={data}
+          id="chart-1"
+          title={
+            activeDataSet
+              ? `Dataset: ${activeDataSet.name}`
+              : `Default Sample Data (${dataCount})`
+          }
         />
         <DataTable loading={loading} data={data as unknown as AnyRecord[]} />
       </div>

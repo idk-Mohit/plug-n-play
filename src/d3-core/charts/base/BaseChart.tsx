@@ -4,10 +4,17 @@ import { useAtomValue } from "jotai";
 import { sidebarTransitionAtom } from "@/state/ui/layout";
 import { generateGrid } from "@/d3-core/core/grid/gridGenerator";
 import { renderAxes } from "@/d3-core/core/axes/generateAxes";
-import { renderScatterPoints, renderSeries } from "@/d3-core/core/renderer/generateSeries";
+import {
+  renderScatterPoints,
+  renderSeries,
+} from "@/d3-core/core/renderer/generateSeries";
 import type { timeseriesdata } from "@/types/data.types";
 import { generateScale } from "@/d3-core/core/scales/generateScales";
-import { chartSettingsAtomFamily, type GridType } from "@/state/ui/chart-setting";
+import {
+  chartSettingsAtomFamily,
+  type GridType,
+} from "@/state/ui/chart-setting";
+import { ChartType as ChartTypeConst } from "@/enums/chart.enums";
 import { addHtmlTooltip } from "@/d3-core/core/tooltip/tooltip";
 
 interface BaseChartProps {
@@ -22,7 +29,7 @@ const BaseChart = ({
   id,
   data,
   height = 300,
-  type = "line",
+  type = ChartTypeConst.LINE,
   gridType = "both",
 }: BaseChartProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -148,6 +155,7 @@ const BaseChart = ({
         style: {
           stroke: chartSettings.stroke,
           strokeWidth: 2,
+          fill: chartSettings.stroke, // Add fill for scatter charts
         },
         animation: {
           enabled: chartSettings.animation.enabled,
@@ -158,9 +166,9 @@ const BaseChart = ({
 
     // ⚪ Data points update
     if (
-      (chartSettings.showDataPoints && type !== "scatter") ||
+      (chartSettings.showDataPoints && type !== ChartTypeConst.SCATTER) ||
       (chartSettings.showDataPoints &&
-        type !== "scatter" &&
+        type !== ChartTypeConst.SCATTER &&
         last.stroke !== chartSettings.stroke)
     ) {
       renderScatterPoints({
