@@ -32,7 +32,11 @@ export function NavMain({
                 disabled={item.disabled}
                 tooltip={item.title}
                 onClick={item?.onClick ?? undefined}
-                className={item?.active ? "border" : "border-transparent"}
+                className={
+                  item?.active
+                    ? "border cursor-pointer"
+                    : "border-transparent cursor-pointer"
+                }
               >
                 {item.icon && <item.icon />}
                 <span>{item.title}</span>
