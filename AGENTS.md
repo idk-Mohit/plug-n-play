@@ -17,6 +17,10 @@ This repo is **Plug & Play**: a performance-first dashboard + charting engine bu
 - `pnpm lint`: lint
 - `pnpm build`: typecheck + build
 
+## Optional agent skills (repo-local)
+
+Task-specific playbooks live in `.cursor/skills/*/SKILL.md` (e.g. frontend UI, system design, React patterns, performance). Stack truth stays here and in `.cursor/rules/`; skills add situational depth the model can apply when relevant.
+
 ## Project conventions (high-signal)
 
 - **Imports**: use the `@/` alias (see `tsconfig.json`, `vite.config.ts`).
