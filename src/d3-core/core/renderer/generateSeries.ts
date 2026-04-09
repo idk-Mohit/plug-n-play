@@ -2,6 +2,7 @@ import * as d3 from "d3";
 import type { D3Scale } from "@/d3-core/core/scales/generateScales";
 import { curveMap, type PathCurveType } from "@/state/ui/chart-setting";
 import { getGradientFill } from "@/utils/commonFunctions";
+import { ChartType as ChartTypeConst } from "@/enums/chart.enums";
 
 // Supported chart types
 type SeriesType = "line" | "area" | "scatter";
@@ -51,7 +52,7 @@ function renderSeries<T>({
   svg.selectAll("[class^='series-']").remove();
   // svg.selectAll("[class^='point-']").remove();
 
-  if (type === "scatter") {
+  if (type === ChartTypeConst.SCATTER) {
     renderScatterPoints({
       data,
       xKey,
@@ -59,7 +60,10 @@ function renderSeries<T>({
       svg,
       xScale,
       yScale,
-      style,
+      style: {
+        fill: style.fill || style.stroke || "steelblue", // Use fill first, then stroke, then default
+        radius: 3,
+      },
       animation,
       className: "series-scatter",
     });
@@ -77,7 +81,7 @@ function renderSeries<T>({
   };
 
   const generator =
-    type === "line"
+    type === ChartTypeConst.LINE
       ? d3.line<T>().x(getX).y(getY).curve(curveMap[curve])
       : d3
           .area<T>()
@@ -87,7 +91,7 @@ function renderSeries<T>({
           .curve(curveMap[curve]);
 
   // Gradient setup
-  if (type === "area") {
+  if (type === ChartTypeConst.AREA) {
     const gradientId = "area-gradient";
     const defs = svg.select("defs").empty()
       ? svg.append("defs")
@@ -139,7 +143,7 @@ function renderSeries<T>({
   }
 
   merged
-    .attr("fill", type === "area" ? "url(#area-gradient)" : "none")
+    .attr("fill", type === ChartTypeConst.AREA ? "url(#area-gradient)" : "none")
     .attr("stroke", style.stroke || "steelblue")
     .attr("stroke-width", style.strokeWidth ?? 2);
 
@@ -219,7 +223,7 @@ function renderScatterPoints<T>({
       T,
       SVGGElement,
       unknown
-    >
+    >,
   );
 
   if (animation?.enabled) {
