@@ -1,0 +1,15 @@
+---
+description: Performance guardrails for charting + large data UI
+globs: src/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# Performance guardrails
+
+- Don’t do expensive work in render: parsing, sorting, grouping, heavy mapping of 50k+ points.
+- Prefer memoization when it prevents real work; avoid “cargo-cult” memoization.
+- Keep effect dependencies correct; don’t re-subscribe on every render.
+- For large lists/tables, prefer virtualization (you already use `@tanstack/react-virtual`).
+- For heavy transforms, use `src/compute/` and/or worker pathways in `src/engine/`.
+- When changing chart code, sanity-check: “does this create new arrays/objects every frame?”
+

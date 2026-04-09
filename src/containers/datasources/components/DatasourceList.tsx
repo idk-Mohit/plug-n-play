@@ -165,7 +165,7 @@ export function DatasourceList() {
           if (!open) setExpandedDataset(null);
         }}
       >
-        <DialogContent className="max-w-[90vw] w-full min-h-fit max-h-[80vh] overflow-hidden">
+        <DialogContent className="w-[100vw] min-h-fit max-h-[80vh]">
           <DialogHeader className="gap-4 flex justify-between">
             <DialogTitle>Table View</DialogTitle>
             <DialogDescription />

@@ -45,11 +45,9 @@ const DatasourceItem = memo(function DatasetItem({
 
   const openFileViewer = async () => {
     const entries = await listOpfsRoot();
-    console.table(entries);
 
     if (entries.length) {
       const firstFile = entries.find((e) => e.kind === "file");
-      console.log("First file", firstFile);
       if (firstFile) {
         const content = await readOpfsFile(firstFile.name);
         console.log("File content:", content);
@@ -164,7 +162,7 @@ const DatasourceItem = memo(function DatasetItem({
           </h5>
 
           {/* Preview JSON (rendered as code, truncated for large arrays by parent) */}
-          <pre className="text-xs text-muted-foreground bg-background rounded p-3 overflow-auto max-h-40">
+          <pre className="text-xs text-muted-foreground bg-background rounded p-3 overflow-auto max-h-40 whitespace-pre-wrap break-words">
             {/* The content is injected by the parent via memoized string to avoid repeated stringify here */}
             {/* We keep this container minimal to avoid unnecessary work */}
             {JSON.stringify(dataset.preview, null, 2)}

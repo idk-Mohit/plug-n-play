@@ -1,0 +1,21 @@
+---
+description: Core repo context + how to navigate
+alwaysApply: true
+---
+
+# Plug & Play repo context
+
+- **Stack**: Vite + React + TypeScript, D3, Jotai, Tailwind + shadcn/ui.
+- **Entry docs**: read `AGENTS.md`, then `README.md`, then `src/README.md`.
+- **Key areas**:
+  - `src/core/`: infrastructure (RPC, storage, data-engine)
+  - `src/state/`: Jotai atoms (UI + data)
+  - `src/d3-core/`: chart engine + renderer/scales/axes
+  - `src/compute/` + `src/engine/`: heavy compute + workers
+
+## Development expectations
+
+- Prefer `@/` imports.
+- Keep heavy work out of React render paths.
+- Don’t introduce broad re-render cascades (especially charts and large lists).
+
