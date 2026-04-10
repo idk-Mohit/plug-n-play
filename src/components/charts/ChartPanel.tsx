@@ -1,7 +1,7 @@
 import { useAtom, useAtomValue } from "jotai";
 import { chartSettingsAtomFamily } from "@/state/ui/chart-setting";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import BaseChart from "@/d3-core/charts/base/BaseChart";
+import BaseChart from "@/d3-core/charts/cartesian/BaseChart";
 import type { timeseriesdata } from "@/types/data.types";
 import { sidebarTransitionAtom } from "@/state/ui/layout";
 import { Loader } from "@/components/loader";

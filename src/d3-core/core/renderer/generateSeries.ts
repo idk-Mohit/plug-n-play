@@ -1,40 +1,47 @@
 import * as d3 from "d3";
 import type { D3Scale } from "@/d3-core/core/scales/generateScales";
-import { curveMap, type PathCurveType } from "@/state/ui/chart-setting";
+import { curveMap, type PathCurveType } from "@/d3-core/core/curves";
 import { getGradientFill } from "@/utils/commonFunctions";
-import { ChartType as ChartTypeConst } from "@/enums/chart.enums";
+import {
+  ChartType as ChartTypeConst,
+  type ChartType as ChartTypeValue,
+} from "@/enums/chart.enums";
 
-// Supported chart types
-type SeriesType = "line" | "area" | "scatter";
+/**
+ * Chart kinds handled by this module. Bar series will use a dedicated renderer
+ * once implemented; `BAR` is excluded at the type level until then.
+ */
+export type RenderSeriesChartType = Exclude<
+  ChartTypeValue,
+  typeof ChartTypeConst.BAR
+>;
 
-// Configuration object for rendering a series
 interface RenderSeriesOptions<T> {
-  type: SeriesType; // "line", "area", or "scatter"
-  data: T[]; // Array of data points
-  xKey: keyof T; // Key for x-values
-  yKey: keyof T; // Key for y-values
-  svg: d3.Selection<SVGGElement, unknown, null, undefined>; // Target SVG group element
+  type: RenderSeriesChartType;
+  data: T[];
+  xKey: keyof T;
+  yKey: keyof T;
+  svg: d3.Selection<SVGGElement, unknown, null, undefined>;
   scales: {
     x: D3Scale;
     y: D3Scale;
   };
   style?: {
-    stroke?: string; // Stroke color (line/area)
-    strokeWidth?: number; // Stroke thickness
-    fill?: string; // Fill color (area or scatter)
-    radius?: number; // Circle radius (scatter)
-    showDataPoints?: boolean; // Whether to show data points
+    stroke?: string;
+    strokeWidth?: number;
+    fill?: string;
+    radius?: number;
+    showDataPoints?: boolean;
   };
-  curve?: PathCurveType; // Curve function
+  curve?: PathCurveType;
   animation?: {
     enabled: boolean;
-    duration?: number; // Duration of animation in milliseconds
-  }; // Whether to animate the update
+    duration?: number;
+  };
 }
 
 /**
- * Render a visual data series into a given SVG group using D3.
- * Supports line, area, and scatter plots.
+ * Renders a single X/Y series (line, area, or scatter) into a chart group.
  */
 function renderSeries<T>({
   type,
@@ -50,7 +57,6 @@ function renderSeries<T>({
   const { x: xScale, y: yScale } = scales;
 
   svg.selectAll("[class^='series-']").remove();
-  // svg.selectAll("[class^='point-']").remove();
 
   if (type === ChartTypeConst.SCATTER) {
     renderScatterPoints({
@@ -61,7 +67,7 @@ function renderSeries<T>({
       xScale,
       yScale,
       style: {
-        fill: style.fill || style.stroke || "steelblue", // Use fill first, then stroke, then default
+        fill: style.fill || style.stroke || "steelblue",
         radius: 3,
       },
       animation,
@@ -90,7 +96,6 @@ function renderSeries<T>({
           .y1(getY)
           .curve(curveMap[curve]);
 
-  // Gradient setup
   if (type === ChartTypeConst.AREA) {
     const gradientId = "area-gradient";
     const defs = svg.select("defs").empty()
@@ -149,7 +154,6 @@ function renderSeries<T>({
 
   path.exit().remove();
 
-  // 🔄 Datapoints now use the external render function
   if (style?.showDataPoints) {
     renderScatterPoints({
       data,
@@ -244,4 +248,4 @@ function renderScatterPoints<T>({
 }
 
 export { renderSeries, renderScatterPoints };
-export type { RenderSeriesOptions, SeriesType };
+export type { RenderSeriesOptions };

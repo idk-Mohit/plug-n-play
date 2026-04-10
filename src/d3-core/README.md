@@ -1,58 +1,48 @@
 # D3 Core Directory
 
-This directory contains the complete D3.js visualization engine for the dashboard platform.
+This directory contains the D3 visualization engine for the dashboard: shared **core** utilities (scales, axes, curves, grid, tooltip, series renderer) and **chart** components grouped by layout family.
 
-## 📁 Structure
+## Structure
 
 ```
 d3-core/
-├── 🎯 core/           # Core D3 utilities and functions
-│   ├── 📏 scales/     # Scale generation and management
-│   ├── 📊 axes/       # Axis rendering and configuration
-│   ├── 🎨 renderer/  # Series rendering (lines, areas, scatter)
-│   ├── 🌐 grid/       # Grid generation utilities
-│   ├── 💬 tooltip/    # Tooltip implementations
-│   ├── 🎮 interactions/ # Zoom, pan, and other interactions
-│   └── 🎭 transitions/ # Animation and transition utilities
-├── 📈 charts/         # Chart implementations
-│   ├── 📊 base/      # Base chart component
-│   ├── 📈 line/       # Line chart implementation
-│   ├── 📊 area/       # Area chart implementation
-│   ├── 🔵 scatter/    # Scatter plot implementation
-│   └── 📊 bar/        # Bar chart implementation
-└── 📋 types/         # D3-specific type definitions
+├── index.ts              # Re-exports core/ only (charts are imported by path)
+├── core/
+│   ├── curves.ts         # D3 line/area curve factories + PathCurveType (not in enums/)
+│   ├── scales/
+│   ├── axes/
+│   ├── renderer/         # Cartesian line / area / scatter series
+│   ├── grid/
+│   └── tooltip/
+└── charts/
+    ├── cartesian/        # X/Y charts sharing axes (BaseChart: line, area, scatter; bar planned)
+    ├── registry.ts       # Scaffold for lazy-loaded chart families (donut, radial, …)
+    └── index.ts          # Re-exports cartesian + registry (for explicit chart imports)
 ```
 
-## 🎯 Purpose
+## Import strategy (bundle size)
 
-D3-Core provides a **unified, performant visualization engine** that:
-- Abstracts D3.js complexity into reusable utilities
-- Provides consistent chart implementations
-- Handles scales, axes, and rendering automatically
-- Supports animations and interactions
-- Optimized for large datasets
+- Use `@/d3-core` or `@/d3-core/core` for **kernel** utilities (scales, axes, tooltip, `curveMap`, `renderSeries`).
+- Import chart components from **`@/d3-core/charts/cartesian/...`** (or `@/d3-core/charts`) so future arc/radial modules can stay in separate chunks.
+- `charts/registry.ts` is the intended place to register `import()`-based loaders for non-Cartesian charts.
 
-## 🧠 Core Utilities (`core/`)
+## Core utilities
 
-### 📏 Scales (`scales/`)
+### Scales (`core/scales/`)
+
 ```typescript
 import { generateScale } from "@/d3-core/core/scales";
 
 const scale = generateScale({
   data: chartData,
-  key: 'value',
-  scaleType: 'linear',
-  range: [0, chartWidth]
+  key: "value",
+  scaleType: "linear",
+  range: [0, chartWidth],
 });
 ```
 
-**Features:**
-- Automatic domain calculation
-- Support for linear, time, band, ordinal scales
-- Type-safe scale generation
-- Custom domain overrides
+### Axes (`core/axes/`)
 
-### 📊 Axes (`axes/`)
 ```typescript
 import { renderAxes } from "@/d3-core/core/axes";
 
@@ -60,65 +50,40 @@ renderAxes({
   svg: chartGroup,
   scales: { x: xScale, y: yScale },
   height: chartHeight,
-  format: { x: dateFormatter, y: valueFormatter }
 });
 ```
 
-**Features:**
-- Automatic axis generation
-- Custom formatting and styling
-- Animation support
-- Visibility controls
+### Curves (`core/curves.ts`)
 
-### 🎨 Renderer (`renderer/`)
+Line and area paths use D3 curve factories keyed by persisted settings. Import `curveMap` and `PathCurveType` from here (or re-exported via `@/state/ui/chart-setting` in UI code).
+
+### Renderer (`core/renderer/`)
+
 ```typescript
 import { renderSeries } from "@/d3-core/core/renderer";
 
 renderSeries({
-  type: 'line',
+  type: "line",
   data: chartData,
+  xKey: "x",
+  yKey: "y",
   svg: chartGroup,
   scales: { x: xScale, y: yScale },
-  style: { stroke: 'blue', strokeWidth: 2 }
 });
 ```
 
-**Features:**
-- Line, area, and scatter plot rendering
-- Smooth curve interpolation
-- Animation support
-- Data point rendering
+Supports line, area, and scatter. `ChartType.BAR` uses a future bar renderer; `renderSeries` typing excludes `bar` until implemented.
 
-## 📈 Chart Implementations (`charts/`)
+### Tooltip (`core/tooltip/`)
 
-### 📊 Base Chart (`base/BaseChart.tsx`)
-The foundation for all chart implementations:
-- Manages SVG container and resizing
-- Handles scale generation and axis rendering
-- Coordinates rendering pipeline
-- Provides consistent chart API
+HTML and SVG tooltip helpers for Cartesian (time × value) series. They assume sorted `x` data for bisector hover.
 
-### 📈 Chart Types
-Each chart type extends BaseChart:
-- **Line Chart** - Time series and line data
-- **Area Chart** - Filled area visualizations  
-- **Scatter Plot** - Point-based data
-- **Bar Chart** - Categorical comparisons
+## Cartesian charts (`charts/cartesian/`)
 
-## 🔄 Usage Patterns
+`BaseChart` owns the SVG shell, `ResizeObserver`, margins, scales, grid, axes, series rendering, and tooltip wiring for line / area / scatter. Selecting **Bar** in settings shows axes only until the bar series is implemented.
 
 ```typescript
-// Basic chart usage
-import { LineChart } from "@/d3-core/charts";
-
-<LineChart 
-  data={timeSeriesData}
-  height={300}
-  settings={chartSettings}
-/>
-
-// Advanced usage with BaseChart
-import { BaseChart } from "@/d3-core/charts/base";
+import BaseChart from "@/d3-core/charts/cartesian/BaseChart";
 
 <BaseChart
   id="my-chart"
@@ -129,77 +94,13 @@ import { BaseChart } from "@/d3-core/charts/base";
 />
 ```
 
-## 🚀 Performance Features
+## Extending
 
-### 🎯 Optimizations
-- **Virtual rendering** for large datasets
-- **Debounced updates** to prevent excessive re-renders
-- **Spatial indexing** for fast data point lookup
-- **Memory management** for data cleanup
+1. **New Cartesian type** (e.g. bar): implement rendering in `core/renderer/` or a dedicated module, then branch inside `BaseChart` or compose a thin wrapper.
+2. **New non-Cartesian type** (e.g. donut): add `charts/donut/`, register a lazy loader in `charts/registry.ts`, and render from the view layer with `React.lazy`.
 
-### 🎭 Animations
-- Smooth transitions between data states
-- Configurable animation types (fade, draw, grow)
-- Performance-aware animation scheduling
-- Hardware acceleration support
+## Performance notes
 
-## 🎮 Interactions
-
-### 🔄 Built-in Interactions
-- **Zoom** - Mouse wheel and pinch zoom
-- **Pan** - Click and drag navigation
-- **Hover** - Tooltip and highlighting
-- **Selection** - Data point selection
-
-### 🎛️ Configuration
-```typescript
-const interactionConfig = {
-  mode: 'zoom', // 'none' | 'pan' | 'zoom' | 'both'
-  sensitivity: 1.0,
-  minZoom: 0.5,
-  maxZoom: 10.0
-};
-```
-
-## 📋 Best Practices
-
-1. **Use scales utility** - Don't create scales manually
-2. **Leverage BaseChart** - Extend for custom charts
-3. **Optimize data** - Pre-process large datasets
-4. **Configure animations** - Disable for real-time data
-5. **Memory management** - Clean up event listeners
-
-## 🔧 Extending the Engine
-
-### Adding New Chart Types
-```typescript
-// Create new chart in charts/custom/
-import { BaseChart } from '../base/BaseChart';
-
-export function CustomChart({ data, ...props }) {
-  return (
-    <BaseChart
-      {...props}
-      data={data}
-      type="custom"
-      renderCustomSeries={customRenderer}
-    />
-  );
-}
-```
-
-### Adding Core Utilities
-```typescript
-// Add to appropriate core/ directory
-export function customUtility(params) {
-  // Implementation
-}
-```
-
-## 🎨 Theming
-
-Charts support consistent theming through:
-- CSS variables for colors
-- Configurable stroke and fill styles
-- Custom font settings
-- Responsive breakpoints
+- Debounced resize handling in `BaseChart` limits layout thrash.
+- Keep heavy transforms out of React render; mutate D3 selections in effects.
+- Prefer explicit imports over a single mega-barrel that re-exports every chart.

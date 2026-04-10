@@ -46,8 +46,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       {
         title: "Visualizations",
         url: "#",
-        badge: "Soon",
-        disabled: true,
+        badge: "Beta",
+        onClick: () => setView({ view: "visuals" }),
         active: view === "visuals",
       },
       {

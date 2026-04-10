@@ -3,6 +3,9 @@
  *
  * This module contains Jotai atoms for managing chart configuration and settings.
  * Uses atomFamily to create per-chart state instances.
+ *
+ * Curve keys (`PathCurveType`) and `curveMap` are defined in `@/d3-core/core/curves`
+ * and re-exported here so UI code can import settings + curve metadata from one place.
  */
 
 import { atom } from "jotai";
@@ -14,49 +17,17 @@ import {
   InteractionMode,
   TimeFormat,
   AnimationType,
-  PathCurveType,
-  curveMap,
 } from "@/enums/chart.enums";
+import { PathCurveType } from "@/d3-core/core/curves";
 
-/**
- * Supported chart types for visualization
- */
+export { PathCurveType, curveMap } from "@/d3-core/core/curves";
+
 export type { ChartType };
-
-/**
- * Grid display options for charts
- */
 export type { GridType };
-
-/**
- * User interaction modes for charts
- */
 export type { InteractionMode };
-
-/**
- * Time formatting options for time-based axes
- */
 export type { TimeFormat };
-
-/**
- * Animation types for chart transitions
- */
 export type { AnimationType };
 
-/**
- * Path curve types for line/area charts
- */
-export type { PathCurveType };
-
-/**
- * Maps curve type strings to D3 curve factory functions
- */
-export { curveMap };
-
-/**
- * Complete chart configuration interface
- * Contains all visual and behavioral settings for a chart instance
- */
 export interface ChartSettings {
   /** Unique identifier for the chart */
   id: string;
@@ -125,10 +96,6 @@ export const chartSettingsAtomFamily = atomFamily((id: string) =>
   }),
 );
 
-/**
- * Atom for managing the full settings drawer state
- * Controls which chart's settings are currently being edited
- */
 export const chartFullSettingsDrawerAtom = atom({
   /** Whether the settings drawer is open */
   enabled: false,

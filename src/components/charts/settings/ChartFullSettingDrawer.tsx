@@ -19,11 +19,11 @@ import {
 import {
   ChartType as ChartTypeConst,
   GridType as GridTypeConst,
-  PathCurveType as PathCurveTypeConst,
   AnimationType as AnimationTypeConst,
   InteractionMode as InteractionModeConst,
   TimeFormat as TimeFormatConst,
 } from "@/enums/chart.enums";
+import { PathCurveType as PathCurveTypeConst } from "@/d3-core/core/curves";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -105,6 +105,7 @@ export function ChartFullSettingsDrawer({
                 <SelectItem value={ChartTypeConst.LINE}>Line</SelectItem>
                 <SelectItem value={ChartTypeConst.AREA}>Area</SelectItem>
                 <SelectItem value={ChartTypeConst.SCATTER}>Scatter</SelectItem>
+                <SelectItem value={ChartTypeConst.BAR}>Bar (coming soon)</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -182,8 +183,9 @@ export function ChartFullSettingsDrawer({
 
           <Separator />
 
-          {/* Show Data Points */}
-          {chartSettings.type !== ChartTypeConst.SCATTER && (
+          {/* Show Data Points (line/area only; scatter draws points; bar TBD) */}
+          {chartSettings.type !== ChartTypeConst.SCATTER &&
+            chartSettings.type !== ChartTypeConst.BAR && (
             <div>
               <div className="flex items-center justify-between">
                 <Label htmlFor="show-data-points">Show Data Points</Label>
@@ -198,7 +200,8 @@ export function ChartFullSettingsDrawer({
             </div>
           )}
 
-          {chartSettings.type !== ChartTypeConst.SCATTER && <Separator />}
+          {chartSettings.type !== ChartTypeConst.SCATTER &&
+            chartSettings.type !== ChartTypeConst.BAR && <Separator />}
 
           {/* Font Size */}
           <div>
@@ -295,34 +298,39 @@ export function ChartFullSettingsDrawer({
 
           <Separator />
 
-          {/* Curve Type */}
-          <div>
-            <Label htmlFor="curve-type">Curve Type</Label>
-            <Select
-              value={chartSettings.pathCurve}
-              onValueChange={(value: PathCurveType) =>
-                updateSetting("pathCurve", value)
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select curve type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={PathCurveTypeConst.LINEAR}>
-                  Linear
-                </SelectItem>
-                <SelectItem value={PathCurveTypeConst.NATURAL}>
-                  Natural
-                </SelectItem>
-                <SelectItem value={PathCurveTypeConst.BASIS}>Basis</SelectItem>
-                <SelectItem value={PathCurveTypeConst.CARDINAL}>
-                  Cardinal
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Curve Type (line/area only) */}
+          {(chartSettings.type === ChartTypeConst.LINE ||
+            chartSettings.type === ChartTypeConst.AREA) && (
+            <>
+              <div>
+                <Label htmlFor="curve-type">Curve Type</Label>
+                <Select
+                  value={chartSettings.pathCurve}
+                  onValueChange={(value: PathCurveType) =>
+                    updateSetting("pathCurve", value)
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select curve type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={PathCurveTypeConst.LINEAR}>
+                      Linear
+                    </SelectItem>
+                    <SelectItem value={PathCurveTypeConst.NATURAL}>
+                      Natural
+                    </SelectItem>
+                    <SelectItem value={PathCurveTypeConst.BASIS}>Basis</SelectItem>
+                    <SelectItem value={PathCurveTypeConst.CARDINAL}>
+                      Cardinal
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-          <Separator />
+              <Separator />
+            </>
+          )}
 
           {/* Time Format */}
           <div>

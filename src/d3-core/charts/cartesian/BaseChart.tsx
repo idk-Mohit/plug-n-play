@@ -1,3 +1,10 @@
+/**
+ * Cartesian chart shell: shared X/Y scales, grid, axes, and line/area/scatter series.
+ *
+ * Future `ChartType.BAR` will render bars in this same coordinate system; until then
+ * selecting Bar in settings shows axes only (no series) so the app stays stable.
+ */
+
 import { memo, useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
 import { useAtomValue } from "jotai";
@@ -7,11 +14,13 @@ import { renderAxes } from "@/d3-core/core/axes/generateAxes";
 import {
   renderScatterPoints,
   renderSeries,
+  type RenderSeriesChartType,
 } from "@/d3-core/core/renderer/generateSeries";
 import type { timeseriesdata } from "@/types/data.types";
 import { generateScale } from "@/d3-core/core/scales/generateScales";
 import {
   chartSettingsAtomFamily,
+  type ChartType,
   type GridType,
   type PathCurveType,
 } from "@/state/ui/chart-setting";
@@ -22,7 +31,7 @@ interface BaseChartProps {
   id: string;
   data: timeseriesdata[];
   height?: number;
-  type: "line" | "area" | "scatter";
+  type: ChartType;
   gridType?: GridType;
 }
 
@@ -34,11 +43,19 @@ interface LastRenderCache {
   pathCurve: PathCurveType;
   showDataPoints: boolean;
   stroke: string;
-  type: "line" | "area" | "scatter";
+  type: ChartType;
   dataHash: string;
   xDomain: unknown;
   yDomain: unknown;
   tooltip: boolean;
+}
+
+function isLineAreaOrScatter(t: ChartType): boolean {
+  return (
+    t === ChartTypeConst.LINE ||
+    t === ChartTypeConst.AREA ||
+    t === ChartTypeConst.SCATTER
+  );
 }
 
 const BaseChart = ({
@@ -57,12 +74,10 @@ const BaseChart = ({
   const isTransitioning = useAtomValue(sidebarTransitionAtom);
   const chartSettings = useAtomValue(chartSettingsAtomFamily(id));
 
-  // 1️⃣ Initialization (SVG + Resize Observer)
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    // Init SVG
     const svg = d3
       .select(container)
       .append("svg")
@@ -73,7 +88,6 @@ const BaseChart = ({
     svgRef.current = svg.node();
     groupRef.current = g.node();
 
-    // Setup ResizeObserver
     let resizeTimeout: number | null = null;
     const observer = new ResizeObserver(() => {
       clearTimeout(resizeTimeout!);
@@ -90,7 +104,6 @@ const BaseChart = ({
     };
   }, []);
 
-  // 2️⃣ Main Render / Update Logic
   useEffect(() => {
     if (!containerRef.current || !svgRef.current || !groupRef.current) return;
 
@@ -98,18 +111,15 @@ const BaseChart = ({
     const svg = d3.select(svgRef.current);
     const g = d3.select(groupRef.current);
 
-    // Size & margin
     const margin = { top: 20, right: 30, bottom: 30, left: 40 };
     const fullWidth = container.clientWidth;
     const fullHeight = container.clientHeight;
     const width = fullWidth - margin.left - margin.right;
-    const height = fullHeight - margin.top - margin.bottom;
+    const chartInnerHeight = fullHeight - margin.top - margin.bottom;
 
-    // Resize chart area
     svg.attr("width", fullWidth).attr("height", fullHeight);
     g.attr("transform", `translate(${margin.left},${margin.top})`);
 
-    // Generate scales
     const xScale = generateScale({
       data,
       key: "x",
@@ -121,22 +131,20 @@ const BaseChart = ({
       data,
       key: "y",
       scaleType: "linear",
-      range: [height, 0],
+      range: [chartInnerHeight, 0],
     });
 
     const last = lastRef.current;
-    // 🔁 Grid update
     if (
       last?.gridType !== gridType ||
       last?.gridType === undefined ||
       last?.width !== width ||
-      last?.height !== height
+      last?.height !== chartInnerHeight
     ) {
       g.selectAll(".grid").remove();
-      generateGrid(g, xScale, yScale, width, height, gridType);
+      generateGrid(g, xScale, yScale, width, chartInnerHeight, gridType);
     }
 
-    // 🪜 Axes update (domain or size changed)
     if (
       JSON.stringify(last?.xDomain) !== JSON.stringify(xScale.domain()) ||
       JSON.stringify(last?.yDomain) !== JSON.stringify(yScale.domain()) ||
@@ -145,22 +153,24 @@ const BaseChart = ({
       renderAxes({
         svg: g,
         scales: { x: xScale, y: yScale },
-        height,
+        height: chartInnerHeight,
         ticks: { y: 15, x: 10 },
       });
     }
 
-    // 📈 Series update (data/type/curve changed)
+    const seriesReady = isLineAreaOrScatter(type);
+
     if (
-      last?.pathCurve !== chartSettings.pathCurve ||
-      last?.type !== type ||
-      last?.dataHash !== hashData(data) ||
-      last?.width !== width ||
-      last?.height !== height ||
-      last?.stroke !== chartSettings.stroke
+      seriesReady &&
+      (last?.pathCurve !== chartSettings.pathCurve ||
+        last?.type !== type ||
+        last?.dataHash !== hashData(data) ||
+        last?.width !== width ||
+        last?.height !== chartInnerHeight ||
+        last?.stroke !== chartSettings.stroke)
     ) {
       renderSeries({
-        type,
+        type: type as RenderSeriesChartType,
         data,
         xKey: "x",
         yKey: "y",
@@ -170,7 +180,7 @@ const BaseChart = ({
         style: {
           stroke: chartSettings.stroke,
           strokeWidth: 2,
-          fill: chartSettings.stroke, // Add fill for scatter charts
+          fill: chartSettings.stroke,
         },
         animation: {
           enabled: chartSettings.animation.enabled,
@@ -179,12 +189,16 @@ const BaseChart = ({
       });
     }
 
-    // ⚪ Data points update
+    if (!seriesReady) {
+      g.selectAll("[class^='series-']").remove();
+      g.selectAll(`[class^="point-"]`).remove();
+    }
+
     if (
-      (chartSettings.showDataPoints && type !== ChartTypeConst.SCATTER) ||
-      (chartSettings.showDataPoints &&
-        type !== ChartTypeConst.SCATTER &&
-        last?.stroke !== chartSettings.stroke)
+      chartSettings.showDataPoints &&
+      type !== ChartTypeConst.SCATTER &&
+      type !== ChartTypeConst.BAR &&
+      seriesReady
     ) {
       renderScatterPoints({
         data,
@@ -207,27 +221,18 @@ const BaseChart = ({
       g.selectAll(`[class^="point-"]`).remove();
     }
 
-    // addSvgTooltip({
-    //   svg: g,
-    //   data,
-    //   xScale,
-    //   yScale,
-    //   enable: chartSettings.tooltip,
-    // });
-
     addHtmlTooltip({
       container,
       svg,
       data,
       xScale,
       yScale,
-      enable: chartSettings.tooltip,
+      enable: chartSettings.tooltip && seriesReady,
     });
 
-    // Save current state
     lastRef.current = {
       width,
-      height,
+      height: chartInnerHeight,
       gridType,
       pathCurve: chartSettings.pathCurve,
       showDataPoints: chartSettings.showDataPoints,
