@@ -13,6 +13,7 @@ import { generateScale } from "@/d3-core/core/scales/generateScales";
 import {
   chartSettingsAtomFamily,
   type GridType,
+  type PathCurveType,
 } from "@/state/ui/chart-setting";
 import { ChartType as ChartTypeConst } from "@/enums/chart.enums";
 import { addHtmlTooltip } from "@/d3-core/core/tooltip/tooltip";
@@ -25,6 +26,21 @@ interface BaseChartProps {
   gridType?: GridType;
 }
 
+/** Cached render state for incremental D3 updates */
+interface LastRenderCache {
+  width: number;
+  height: number;
+  gridType: GridType;
+  pathCurve: PathCurveType;
+  showDataPoints: boolean;
+  stroke: string;
+  type: "line" | "area" | "scatter";
+  dataHash: string;
+  xDomain: unknown;
+  yDomain: unknown;
+  tooltip: boolean;
+}
+
 const BaseChart = ({
   id,
   data,
@@ -35,8 +51,7 @@ const BaseChart = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const groupRef = useRef<SVGGElement | null>(null);
-  //ts-ignore
-  const lastRef = useRef<any>(null);
+  const lastRef = useRef<LastRenderCache | null>(null);
   const [renderTrigger, setRenderTrigger] = useState(0);
 
   const isTransitioning = useAtomValue(sidebarTransitionAtom);
@@ -109,13 +124,13 @@ const BaseChart = ({
       range: [height, 0],
     });
 
-    const last = lastRef.current ?? {};
+    const last = lastRef.current;
     // 🔁 Grid update
     if (
-      last.gridType !== gridType ||
-      last.gridType === undefined ||
-      last.width !== width ||
-      last.height !== height
+      last?.gridType !== gridType ||
+      last?.gridType === undefined ||
+      last?.width !== width ||
+      last?.height !== height
     ) {
       g.selectAll(".grid").remove();
       generateGrid(g, xScale, yScale, width, height, gridType);
@@ -123,9 +138,9 @@ const BaseChart = ({
 
     // 🪜 Axes update (domain or size changed)
     if (
-      JSON.stringify(last.xDomain) !== JSON.stringify(xScale.domain()) ||
-      JSON.stringify(last.yDomain) !== JSON.stringify(yScale.domain()) ||
-      last.width !== width
+      JSON.stringify(last?.xDomain) !== JSON.stringify(xScale.domain()) ||
+      JSON.stringify(last?.yDomain) !== JSON.stringify(yScale.domain()) ||
+      last?.width !== width
     ) {
       renderAxes({
         svg: g,
@@ -137,12 +152,12 @@ const BaseChart = ({
 
     // 📈 Series update (data/type/curve changed)
     if (
-      last.pathCurve !== chartSettings.pathCurve ||
-      last.type !== type ||
-      last.dataHash !== hashData(data) ||
-      last.width !== width ||
-      last.height !== height ||
-      last.stroke !== chartSettings.stroke
+      last?.pathCurve !== chartSettings.pathCurve ||
+      last?.type !== type ||
+      last?.dataHash !== hashData(data) ||
+      last?.width !== width ||
+      last?.height !== height ||
+      last?.stroke !== chartSettings.stroke
     ) {
       renderSeries({
         type,
@@ -169,7 +184,7 @@ const BaseChart = ({
       (chartSettings.showDataPoints && type !== ChartTypeConst.SCATTER) ||
       (chartSettings.showDataPoints &&
         type !== ChartTypeConst.SCATTER &&
-        last.stroke !== chartSettings.stroke)
+        last?.stroke !== chartSettings.stroke)
     ) {
       renderScatterPoints({
         data,

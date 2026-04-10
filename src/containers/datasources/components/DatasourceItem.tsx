@@ -21,7 +21,8 @@ import IconButton from "@/components/IconButton";
 /**
  * Choose an icon based on dataset type.
  */
-const getFileIcon = (type: string) => (type === "JSON" ? FileText : Database);
+const getFileIcon = (type: string) =>
+  type.toLowerCase() === "json" ? FileText : Database;
 
 /**
  * A single dataset list item, separated and memoized to minimize re-renders.
@@ -33,6 +34,7 @@ const DatasourceItem = memo(function DatasetItem({
   onAskDelete,
   formatDate,
   onShowGrid,
+  allowDelete = true,
 }: {
   dataset: DatasetMeta;
   isExpanded: boolean;
@@ -40,6 +42,8 @@ const DatasourceItem = memo(function DatasetItem({
   onAskDelete: () => void;
   formatDate: (iso: string) => string;
   onShowGrid: (e: React.MouseEvent) => void;
+  /** Built-in sample dataset cannot be removed */
+  allowDelete?: boolean;
 }) {
   const Icon = getFileIcon(dataset.type);
 
@@ -95,31 +99,35 @@ const DatasourceItem = memo(function DatasetItem({
               ) : null}
             </div>
 
-            <ButtonGroup>
-              <IconButton
-                icon={Pencil}
-                size="lg"
-                iconSize={16}
-                variant="ghost"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onAskDelete();
-                }}
-              />
-              {/* <ButtonGroupSeparator /> */}
-              {/* Delete trigger (stops row toggle) */}
-              <IconButton
-                icon={Trash2}
-                size="lg"
-                variant="ghost"
-                iconSize={16}
-                iconClassName="text-destructive hover:text-destructive hover:bg-destructive/10"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onAskDelete();
-                }}
-              />
-            </ButtonGroup>
+            {allowDelete ? (
+              <ButtonGroup>
+                <IconButton
+                  icon={Pencil}
+                  size="lg"
+                  iconSize={16}
+                  variant="ghost"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAskDelete();
+                  }}
+                />
+                <IconButton
+                  icon={Trash2}
+                  size="lg"
+                  variant="ghost"
+                  iconSize={16}
+                  iconClassName="text-destructive hover:text-destructive hover:bg-destructive/10"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAskDelete();
+                  }}
+                />
+              </ButtonGroup>
+            ) : (
+              <span className="text-xs text-muted-foreground px-2">
+                Built-in
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -163,9 +171,14 @@ const DatasourceItem = memo(function DatasetItem({
 
           {/* Preview JSON (rendered as code, truncated for large arrays by parent) */}
           <pre className="text-xs text-muted-foreground bg-background rounded p-3 overflow-auto max-h-40 whitespace-pre-wrap break-words">
-            {/* The content is injected by the parent via memoized string to avoid repeated stringify here */}
-            {/* We keep this container minimal to avoid unnecessary work */}
-            {JSON.stringify(dataset.preview, null, 2)}
+            {!allowDelete ? (
+              <span>
+                Timestamps (x) and numeric values (y) are generated on the
+                dashboard. This dataset is not stored in IndexedDB.
+              </span>
+            ) : (
+              JSON.stringify(dataset.preview, null, 2)
+            )}
           </pre>
         </div>
       )}

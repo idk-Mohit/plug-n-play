@@ -7,24 +7,14 @@ import { dataEngine } from "@/core/data-engine";
 import { useAtom } from "jotai";
 import { CheckCircle, XCircle } from "lucide-react";
 import React, { useState } from "react";
+import { formatBytes } from "@/utils/format";
 
 interface JsonUploadProps {
   setMode: React.Dispatch<React.SetStateAction<"idle" | "json">>;
 }
 
-const formatBytes = (bytes: number) => {
-  if (bytes === 0) return "0 B";
-  const k = 1024;
-  const sizes = ["B", "KB", "MB", "GB"];
-  const i = Math.min(
-    Math.floor(Math.log(bytes) / Math.log(k)),
-    sizes.length - 1
-  );
-  return `${(bytes / Math.pow(k, i)).toFixed(i === 0 ? 0 : 1)} ${sizes[i]}`;
-};
-
 const JsonUpload = ({ setMode }: JsonUploadProps) => {
-  const [datasets, setDatasets] = useAtom(persistedDatasetsAtom);
+  const [, setDatasets] = useAtom(persistedDatasetsAtom);
   const [jsonData, setJsonData] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
@@ -51,20 +41,21 @@ const JsonUpload = ({ setMode }: JsonUploadProps) => {
       const id = crypto.randomUUID();
       await dataEngine.saveDataset(id, data);
 
-      const ds: Dataset = {
-        id,
-        name: `Dataset ${datasets.length + 1}`,
-        type: "json",
-        size,
-        records,
-        uploadDate: new Date().toISOString(),
-        preview: Array.isArray(data) ? data.slice(0, 10) : [data],
-        storageKey: `dataset:${id}`,
-      };
-
       // set state
       setParsed(data);
-      setDatasets([...datasets, ds]);
+      setDatasets((prev) => {
+        const ds: Dataset = {
+          id,
+          name: `Dataset ${prev.length + 1}`,
+          type: "json",
+          size,
+          records,
+          uploadDate: new Date().toISOString(),
+          preview: Array.isArray(data) ? data.slice(0, 10) : [data],
+          storageKey: `dataset:${id}`,
+        };
+        return [...prev, ds];
+      });
       setUploadSuccess(true);
 
       // go back to list view

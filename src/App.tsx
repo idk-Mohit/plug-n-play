@@ -1,6 +1,13 @@
 import { ThemeProvider } from "./components/theme-provider";
 import ViewRenderer from "./components/ViewRenderer";
 import Dashboard from "./containers/dashboard/Dashboard";
+import { useSetAtom } from "jotai";
+import { useEffect } from "react";
+import { persistedDatasetsAtom } from "@/state/data/dataset";
+import {
+  createDefaultSampleDatasetMeta,
+  DEFAULT_SAMPLE_DATASET_ID,
+} from "@/state/data/defaultSampleDataset";
 
 /**
  * The main app component.
@@ -23,6 +30,15 @@ import Dashboard from "./containers/dashboard/Dashboard";
  * @returns The main app component.
  */
 function App() {
+  const setPersistedDatasets = useSetAtom(persistedDatasetsAtom);
+
+  useEffect(() => {
+    setPersistedDatasets((prev) => {
+      if (prev.some((d) => d.id === DEFAULT_SAMPLE_DATASET_ID)) return prev;
+      return [createDefaultSampleDatasetMeta(), ...prev];
+    });
+  }, [setPersistedDatasets]);
+
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
       <Dashboard>

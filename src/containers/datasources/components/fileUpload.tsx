@@ -4,32 +4,15 @@ import { cn } from "@/lib/utils";
 import { useAtom } from "jotai";
 import { CheckCircle, Upload } from "lucide-react";
 import { useCallback, useState } from "react";
+import { dataEngine } from "@/core/data-engine";
+import { formatBytes } from "@/utils/format";
+import { parseCsvToRecords } from "@/utils/csv";
 
 const FileUpload = () => {
-  const [datasets, setDatasets] = useAtom(persistedDatasetsAtom);
+  const [, setDatasets] = useAtom(persistedDatasetsAtom);
   const [dragActive, setDragActive] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
-
-  const uploadFile = async (name: string) => {
-    try {
-      const opfsRoot = await navigator.storage.getDirectory();
-
-      console.log(opfsRoot);
-      await opfsRoot.getDirectoryHandle("datasets", { create: true });
-      const fileHandle = await opfsRoot.getFileHandle(name, {
-        create: true,
-      });
-
-      const allFiles = await opfsRoot.getDirectoryHandle("datasets");
-
-      console.log("All files", allFiles);
-
-      console.log("Filehandle", fileHandle);
-    } catch (error) {
-      console.log("[Error in uploadFile]: ", error);
-    }
-  };
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -41,63 +24,61 @@ const FileUpload = () => {
     }
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const file = e.dataTransfer.files[0];
-      handleFileUpload(file);
-    }
-  }, []);
-
-  const handleFileUpload = async (file: File) => {
+  const handleFileUpload = useCallback(async (file: File) => {
     setIsUploading(true);
     setUploadSuccess(false);
-
-    // Simulate upload delay for better UX
-    await new Promise((resolve) => setTimeout(resolve, 1500));
 
     const reader = new FileReader();
     reader.onload = async (e) => {
       const content = e.target?.result as string;
-      const fileType = file.name.endsWith(".json") ? "JSON" : "CSV";
+      const lower = file.name.toLowerCase();
+      const isJson = lower.endsWith(".json");
 
       try {
-        let parsedData;
+        let parsedData: unknown;
         let recordCount = 0;
 
-        if (fileType === "JSON") {
+        if (isJson) {
           parsedData = JSON.parse(content);
-          recordCount = Array.isArray(parsedData) ? parsedData.length : 1;
+          recordCount = Array.isArray(parsedData)
+            ? parsedData.length
+            : parsedData !== null && typeof parsedData === "object"
+              ? 1
+              : 0;
         } else {
-          // Simple CSV parsing
-          const lines = content.split("\n").filter((line) => line.trim());
-          recordCount = lines.length - 1; // Subtract header row
-          parsedData = content;
+          const rows = parseCsvToRecords(content);
+          parsedData = rows;
+          recordCount = rows.length;
         }
 
         const id = crypto.randomUUID();
-        const fileName = file.name.replace(/\.[^/.]+$/, "");
+        const displayName = file.name.replace(/\.[^/.]+$/, "");
+
+        await dataEngine.saveDataset(id, parsedData);
+
+        const bytes = new Blob([content]).size;
+        const size = formatBytes(bytes);
+        const preview =
+          Array.isArray(parsedData) && parsedData.length > 0
+            ? parsedData.slice(0, 10)
+            : parsedData !== null && typeof parsedData === "object"
+              ? [parsedData]
+              : [];
 
         const ds: Dataset = {
           id,
-          name: file.name.replace(/\.[^/.]+$/, ""), // Remove extension
-          type: "csv",
-          size: `${(file.size / 1024).toFixed(1)} KB`,
+          name: displayName,
+          type: isJson ? "json" : "csv",
+          size,
           records: recordCount,
           uploadDate: new Date().toISOString(),
-          preview: [],
+          preview,
           storageKey: `dataset:${id}`,
         };
 
-        setDatasets([...datasets, ds]);
+        setDatasets((prev) => [...prev, ds]);
         setIsUploading(false);
         setUploadSuccess(true);
-        await uploadFile(fileName);
-
-        // Reset success state after animation
         setTimeout(() => setUploadSuccess(false), 10000);
       } catch (error) {
         console.error("Error parsing file:", error);
@@ -105,11 +86,25 @@ const FileUpload = () => {
       }
     };
     reader.readAsText(file);
-  };
+  }, [setDatasets]);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setDragActive(false);
+
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+        const file = e.dataTransfer.files[0];
+        void handleFileUpload(file);
+      }
+    },
+    [handleFileUpload]
+  );
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      handleFileUpload(e.target.files[0]);
+      void handleFileUpload(e.target.files[0]);
     }
   };
   return (
@@ -148,8 +143,8 @@ const FileUpload = () => {
             {isUploading
               ? "Processing..."
               : uploadSuccess
-              ? "Upload Complete!"
-              : "Upload CSV"}
+                ? "Upload Complete!"
+                : "Upload CSV or JSON"}
           </h3>
           <p className="text-sm text-muted-foreground mt-1">
             {isUploading ? "Please wait..." : "Choose your data file"}

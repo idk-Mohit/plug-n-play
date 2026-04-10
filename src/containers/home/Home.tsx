@@ -4,77 +4,60 @@ import type { AnyRecord, timeseriesdata } from "@/types/data.types";
 import { ChartFullSettingsDrawer } from "@/components/charts/settings/ChartFullSettingDrawer";
 import { DataTable } from "@/components/table/SimpleTable";
 import { activeDatasetAtom } from "@/state/data/dataset";
+import {
+  DEFAULT_SAMPLE_POINT_COUNT,
+  isDefaultSampleDatasetId,
+} from "@/state/data/defaultSampleDataset";
 import { useAtomValue } from "jotai";
 import { dataEngine } from "@/core/data-engine";
+import { generateSeries } from "@/compute";
 
 const Home = () => {
   const [loading, setLoading] = useState(true);
   const activeDataSet = useAtomValue(activeDatasetAtom);
   const [data, setData] = useState<timeseriesdata[]>([]);
-  const dataCount = 250;
-
-  // Generate default data using worker when no dataset is active
-  const generateDefaultData = async () => {
-    setLoading(true);
-
-    try {
-      const worker = new Worker(
-        new URL("@/compute/workers/dataWorker.ts", import.meta.url),
-        { type: "module" },
-      );
-
-      worker.onmessage = (e) => {
-        if (e.data.status === "working") {
-          // Working status
-        } else if (e.data.status === "success") {
-          // The worker now returns properly formatted timeseriesdata
-          const formattedData: timeseriesdata[] = e.data.data;
-          setData(formattedData);
-          setLoading(false);
-          worker.terminate();
-        } else if (e.data.status === "error") {
-          setLoading(false);
-          worker.terminate();
-        }
-      };
-
-      worker.onerror = (error) => {
-        // Handle worker error silently
-        setLoading(false);
-        worker.terminate();
-        console.error(error);
-      };
-
-      // Send the request immediately after creating the worker
-      worker.postMessage({
-        task: "generate_series",
-        payload: { count: dataCount },
-      });
-    } catch (error) {
-      setLoading(false);
-      console.error(error);
-    }
-  };
+  const dataCount = DEFAULT_SAMPLE_POINT_COUNT;
 
   useEffect(() => {
-    if (activeDataSet) {
-      // Load actual dataset
-      (async () => {
+    const id = activeDataSet?.id;
+    const useUploaded =
+      id && !isDefaultSampleDatasetId(id);
+
+    if (useUploaded) {
+      void (async () => {
         try {
-          const _data = await dataEngine.getDataset(activeDataSet.id ?? "");
+          const _data = await dataEngine.getDataset(id);
           const formattedData = Array.isArray(_data) ? _data : [_data];
-          setData(formattedData);
+          setData(formattedData as timeseriesdata[]);
           setLoading(false);
         } catch (error) {
           setLoading(false);
           console.error(error);
         }
       })();
-    } else {
-      // Generate default data using worker
-      generateDefaultData();
+      return;
     }
-  }, [activeDataSet]);
+
+    let cancelled = false;
+    setLoading(true);
+    void generateSeries({ count: dataCount })
+      .then(({ data: series }) => {
+        if (!cancelled) {
+          setData(series);
+          setLoading(false);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setLoading(false);
+          console.error(error);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeDataSet, dataCount]);
 
   return (
     <>
@@ -84,8 +67,10 @@ const Home = () => {
           id="chart-1"
           title={
             activeDataSet
-              ? `Dataset: ${activeDataSet.name}`
-              : `Default Sample Data (${dataCount})`
+              ? isDefaultSampleDatasetId(activeDataSet.id)
+                ? `Sample time series (${dataCount})`
+                : `Dataset: ${activeDataSet.name}`
+              : `Sample time series (${dataCount})`
           }
         />
         <DataTable loading={loading} data={data as unknown as AnyRecord[]} />

@@ -142,7 +142,16 @@ export interface ComputeBackend {
 
 ## 🔄 Usage Patterns
 
-### Basic Compute Operation
+### Sample series (implemented)
+
+```typescript
+import { generateSeries, measureGenerateSeries } from "@/compute";
+
+const { data, metadata } = await generateSeries({ count: 250 });
+const bench = await measureGenerateSeries({ count: 500 });
+```
+
+### Basic Compute Operation (future facade)
 ```typescript
 import { computeClient } from "@/compute";
 
@@ -218,10 +227,10 @@ const result = await computeClient.execute('operation', data, {
 ## 📋 Implementation Roadmap
 
 ### Phase 1: Foundation
-- [x] RPC abstraction layer
-- [x] Type definitions
-- [ ] Basic worker implementations
-- [ ] Algorithm interfaces
+- [x] Worker entry for sample data generation ([`workers/dataWorker.ts`](workers/dataWorker.ts))
+- [x] Public facade ([`index.ts`](index.ts)) — `generateSeries`, `measureGenerateSeries`
+- [ ] Full RPC abstraction for all compute (see [`docs/ENGINE_PROTOCOL.md`](../../docs/ENGINE_PROTOCOL.md) status)
+- [ ] Algorithm interfaces (shared types for aggregation/filter)
 
 ### Phase 2: Workers
 - [ ] Data aggregation worker
@@ -230,10 +239,9 @@ const result = await computeClient.execute('operation', data, {
 - [ ] Performance monitoring
 
 ### Phase 3: WebAssembly
-- [ ] Mathematical operations module
-- [ ] Data compression module
-- [ ] Signal processing module
-- [ ] Performance benchmarks
+- [x] Sample WASM path for `generate_series` (optional; falls back to JS)
+- [ ] Broader mathematical / compression modules
+- [ ] Performance benchmarks (automated)
 
 ### Phase 4: Advanced Features
 - [ ] Streaming computations

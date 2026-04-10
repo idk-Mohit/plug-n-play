@@ -13,7 +13,7 @@ import type { FormWrapperProps, FormSectionConfig } from "./types";
  * A comprehensive form wrapper that renders forms based on configuration
  * Uses the latest shadcn Field components for consistent styling
  */
-export function FormWrapper<T extends Record<string, unknown> = Record<string, unknown>>({
+export function FormWrapper<T extends object = Record<string, unknown>>({
   sections,
   values,
   onUpdate,
@@ -58,7 +58,9 @@ export function FormWrapper<T extends Record<string, unknown> = Record<string, u
       
       <FieldGroup>
         {section.fields.map((fieldConfig) => {
-          const fieldValue = values[fieldConfig.name];
+          const fieldValue = (values as Record<string, unknown>)[
+            fieldConfig.name
+          ];
           const fieldError = undefined; // TODO: Add validation logic
 
           if (renderField) {

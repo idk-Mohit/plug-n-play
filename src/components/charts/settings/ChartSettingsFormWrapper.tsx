@@ -2,6 +2,7 @@ import { useAtom } from "jotai";
 import {
   chartSettingsAtomFamily,
   chartFullSettingsDrawerAtom,
+  type ChartSettings,
 } from "@/state/ui/chart-setting";
 import { FormWrapper } from "@/components/form-wrapper";
 import { chartSettingsFormConfig } from "@/components/form-wrapper/configs/chart-settings.config";
@@ -59,7 +60,7 @@ export function ChartSettingsFormWrapper({
           </Button>
         </div>
 
-        <FormWrapper
+        <FormWrapper<ChartSettings>
           sections={getFilteredSections()}
           values={chartSettings}
           onUpdate={setChartSettings}

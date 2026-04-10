@@ -2,6 +2,18 @@
 
 This document explains how data flows through the Plug & Play Dashboard system in different scenarios, from default data generation to user-uploaded datasets.
 
+## Implementation status (read this first)
+
+| Area | Status |
+|------|--------|
+| Default sample data via worker | **Implemented** — `generate_series` in [`src/compute/workers/dataWorker.ts`](../src/compute/workers/dataWorker.ts), called via [`src/compute/index.ts`](../src/compute/index.ts) |
+| JSON paste → IndexedDB | **Implemented** — [`src/containers/datasources/components/JsonUpload.tsx`](../src/containers/datasources/components/JsonUpload.tsx) + [`src/core/data-engine.ts`](../src/core/data-engine.ts) |
+| File upload (JSON/CSV) → IndexedDB | **Implemented** — same persistence path as JSON via `dataEngine` |
+| Real-time / WebSocket / export flows | **Not implemented** — sections below are **design targets** |
+| Service worker caching | **Not implemented** |
+
+Sections marked as future behavior describe intent, not guaranteed runtime.
+
 ## 📋 Table of Contents
 
 - [Overview](#overview)
@@ -577,6 +589,5 @@ This documentation follows the same license as the main project.
 
 ---
 
-*Last Updated: 2024-02-15*
-*Documentation Version: 1.0.0*
-*Maintainer: Plug & Play Dashboard Team*
+*Documentation Version: 1.0.0*  
+*Last reviewed: 2026*

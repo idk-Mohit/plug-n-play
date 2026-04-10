@@ -9,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { measureGenerateSeries } from "@/compute";
 
 type UpdateMode = "live" | "normal" | "auto";
 
@@ -86,26 +87,20 @@ export function ResourceStatsPanel() {
   }, [updateMode]);
 
   useEffect(() => {
-    const worker = new Worker(
-      new URL("@/compute/workers/dataWorker.ts", import.meta.url),
-      {
-        type: "module",
+    let cancelled = false;
+    void measureGenerateSeries({ count: 500 }).then(
+      ({ durationMs, dataSizeBytes }) => {
+        if (!cancelled) {
+          setStats((prev) => ({
+            ...prev,
+            workerDuration: durationMs,
+            workerDataSize: dataSizeBytes,
+          }));
+        }
       }
     );
-
-    worker.onmessage = (e) => {
-      const { duration, dataSize } = e.data;
-      setStats((prev) => ({
-        ...prev,
-        workerDuration: duration,
-        workerDataSize: dataSize,
-      }));
-    };
-
-    worker.postMessage("start");
-
     return () => {
-      worker.terminate();
+      cancelled = true;
     };
   }, []);
 
@@ -125,7 +120,7 @@ export function ResourceStatsPanel() {
             <SelectContent>
               <SelectItem value="live">Live (1s)</SelectItem>
               <SelectItem value="normal">Normal (5s)</SelectItem>
-              <SelectItem value="eco">Eco (idle)</SelectItem>
+              <SelectItem value="auto">Eco (idle)</SelectItem>
             </SelectContent>
           </Select>
         </div>

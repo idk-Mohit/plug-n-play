@@ -586,10 +586,10 @@ const encryptData = (data: sensitive): string => {
 
 ## 📚 Related Documentation
 
-- [Engine Protocol](ENGINE_PROTOCOL.md) - Communication specification
-- [API Reference](API_REFERENCE.md) - Complete API documentation
-- [Testing Guidelines](TESTING.md) - Testing strategies and procedures
-- [Deployment Guide](DEPLOYMENT.md) - Production deployment
+- [Engine Protocol](ENGINE_PROTOCOL.md) — UI ↔ worker messaging (see **Implementation status** there)
+- [Data Flow](DATA_FLOW.md) — ingestion and storage (see **Implementation status** there)
+- [Engineering Standards](ENGINEERING_STANDARDS.md)
+- [Documentation index](README.md) — which files exist vs planned
 
 ---
 
@@ -599,6 +599,5 @@ This architecture documentation follows the same license as the main project.
 
 ---
 
-*Last Updated: 2024-02-15*
-*Architecture Version: 1.0.0*
-*Maintainer: Plug & Play Dashboard Team*
+*Architecture Version: 1.0.0 (canonical; update when layers change)*  
+*Last reviewed: 2026*

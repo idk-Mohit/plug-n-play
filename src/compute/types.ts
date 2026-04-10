@@ -1,34 +1,28 @@
-// Compute layer types
+// Compute-layer types (future: aggregation, transforms). Keep minimal to avoid drift from app types.
 
 export interface ComputeRequest {
-  type: 'process-data' | 'calculate-stats' | 'transform-dataset';
+  type: "process-data" | "calculate-stats" | "transform-dataset";
   payload: unknown;
 }
 
 export interface ComputeResponse {
-  type: 'success' | 'error';
+  type: "success" | "error";
   result?: unknown;
   error?: string;
 }
 
 export interface DataProcessor {
-  aggregate(data: Dataset[], operation: AggregationOp): Promise<Dataset>;
-  filter(data: Dataset, criteria: FilterCriteria): Promise<Dataset>;
-  sort(data: Dataset, comparator: SortComparator): Promise<Dataset>;
+  aggregate(data: unknown[], operation: AggregationOp): Promise<unknown>;
+  filter(data: unknown[], criteria: FilterCriteria): Promise<unknown[]>;
+  sort(data: unknown[], comparator: SortComparator): Promise<unknown[]>;
 }
 
-// Type definitions will be expanded as we implement features
-export interface Dataset {
-  id: string;
-  name: string;
-  data: unknown[];
-  metadata: Record<string, unknown>;
-}
+export type AggregationOp = "sum" | "avg" | "count" | "min" | "max";
 
-export type AggregationOp = 'sum' | 'avg' | 'count' | 'min' | 'max';
 export interface FilterCriteria {
   field: string;
-  operator: 'eq' | 'ne' | 'gt' | 'lt' | 'contains';
+  operator: "eq" | "ne" | "gt" | "lt" | "contains";
   value: unknown;
 }
+
 export type SortComparator = (a: unknown, b: unknown) => number;

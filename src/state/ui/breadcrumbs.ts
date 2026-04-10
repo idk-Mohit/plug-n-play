@@ -29,7 +29,7 @@ export const breadcrumbsAtom = atom<BreadcrumbItem[]>([]);
  */
 export const setBreadcrumbsAtom = atom(
   null,
-  async (get, set, breadcrumbs: BreadcrumbItem[]) => {
+  (_get, set, breadcrumbs: BreadcrumbItem[]) => {
     set(breadcrumbsAtom, breadcrumbs);
   }
 );

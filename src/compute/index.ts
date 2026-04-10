@@ -1,11 +1,11 @@
-// Compute layer exports
-// Main entry point for all computation functionality
+/**
+ * Compute layer — public entry for background work (workers / WASM).
+ * Prefer importing from here instead of spawning workers ad hoc in containers.
+ */
 
-// TODO: Add exports as we create the modules
-// export * from './rpc';
-// export * from './workers';
-// export * from './wasm';
-// export * from './algorithms';
-// export * from './types';
-
-console.log('Compute layer initialized');
+export {
+  generateSeries,
+  measureGenerateSeries,
+  type GenerateSeriesMetadata,
+  type GenerateSeriesResult,
+} from "./generateSeries";

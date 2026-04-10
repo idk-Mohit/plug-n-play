@@ -1,6 +1,4 @@
-/* eslint-disable no-restricted-globals */
-
-import type { RpcRequest } from "@/core/rpc/config/protocol";
+import { V, type RpcRequest } from "@/core/rpc/config/protocol";
 
 /**
  * ------------------------------------------------------------
@@ -36,9 +34,6 @@ import type { RpcRequest } from "@/core/rpc/config/protocol";
 
 // ---- Protocol constants & helpers ----
 
-// Increment this if you change the message format
-const V = 1;
-
 // Create a success response
 export function ok<T>(id: string, result: T) {
   return { id, ok: true as const, result };
@@ -51,13 +46,10 @@ export function err(id: string, code: string, message: string) {
 // ---- Handlers ----
 // Each handler gets a validated RpcRequest and must return a response.
 
-const routes = {
-  // Responds to System.ping
+const routes: Record<string, (req: RpcRequest) => Promise<unknown>> = {
   "System.ping": async (req: RpcRequest) => {
     return ok(req.id, { pong: true, t: Date.now() });
   },
-
-  // Responds to System.pong
   "System.pong": async (req: RpcRequest) => {
     return ok(req.id, { ping: true, t: Date.now() });
   },
@@ -69,12 +61,16 @@ const routes = {
  * Validate that a payload looks like an RPC request.
  * Returns an object with { valid: boolean, reason?: string }.
  */
-function validateEnvelope(payload) {
+function validateEnvelope(payload: unknown): {
+  valid: boolean;
+  reason?: string;
+} {
   if (typeof payload !== "object" || payload === null) {
     return { valid: false, reason: "payload is not an object" };
   }
 
-  const { v, id, svc, method, args } = payload;
+  const p = payload as Record<string, unknown>;
+  const { v, id, svc, method, args } = p;
 
   if (v !== V) return { valid: false, reason: "version mismatch" };
   if (typeof svc !== "string" || !svc)
@@ -89,14 +85,13 @@ function validateEnvelope(payload) {
   return { valid: true };
 }
 
-// Helper to form a lookup key like "System.ping"
-function routeKey(svc, method) {
+function routeKey(svc: string, method: string): string {
   return `${svc}.${method}`;
 }
 
 // ---- Worker message handler ----
 
-self.onmessage = async (ev) => {
+self.onmessage = async (ev: MessageEvent) => {
   const payload = ev.data;
 
   // Use provided id if available, otherwise generate one.
@@ -116,13 +111,13 @@ self.onmessage = async (ev) => {
     return;
   }
 
-  // Normalize request (always ensure args is an array)
-  const req = {
+  const p = payload as Record<string, unknown>;
+  const req: RpcRequest = {
     v: V,
     id: msgId,
-    svc: payload.svc,
-    method: payload.method,
-    args: Array.isArray(payload.args) ? payload.args : [],
+    svc: String(p.svc),
+    method: String(p.method),
+    args: Array.isArray(p.args) ? p.args : [],
   };
 
   const key = routeKey(req.svc, req.method);
@@ -139,7 +134,8 @@ self.onmessage = async (ev) => {
     const res = await handler(req);
 
     // Defensive: if handler returned a raw value, wrap it as ok()
-    if (!res || typeof res !== "object" || typeof res.ok !== "boolean") {
+    const r = res as { ok?: unknown };
+    if (!res || typeof res !== "object" || typeof r.ok !== "boolean") {
       self.postMessage(ok(req.id, res));
       return;
     }

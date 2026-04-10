@@ -14,18 +14,60 @@ import type { timeseriesdata } from "@/types/data.types";
 let initialized = false;
 let wasmAvailable = false;
 
+/** One second between points; oldest first (index 0), newest last. */
+const DEFAULT_STEP_MS = 1000;
+
+/**
+ * Monotonic timestamps for `count` points ending near "now".
+ */
+function defaultTimestamps(count: number): Date[] {
+  const now = Date.now();
+  return Array.from({ length: count }, (_, i) =>
+    new Date(now - (count - i) * DEFAULT_STEP_MS)
+  );
+}
+
+/**
+ * Default sample series: `x` = `Date` (ms resolution), `y` = finite number.
+ */
+function buildDefaultSeries(count: number, yAtIndex: (i: number) => number): timeseriesdata[] {
+  const xs = defaultTimestamps(count);
+  return xs.map((x, i) => {
+    const y = yAtIndex(i);
+    return {
+      x,
+      y: Number.isFinite(y) ? y : 0,
+    };
+  });
+}
+
 /**
  * Generate sine wave data in JavaScript (fallback when WASM fails)
  */
 function generateSineWaveJS(count: number): timeseriesdata[] {
-  const data: timeseriesdata[] = [];
-  const now = Date.now();
-  for (let i = 0; i < count; i++) {
-    const x = new Date(now - (count - i) * 1000); // Recent timestamps
-    const y = Math.sin((i / count) * 2 * Math.PI) * 100 + Math.random() * 10;
-    data.push({ x, y });
-  }
-  return data;
+  const n = Math.max(count, 1);
+  return buildDefaultSeries(count, (i) => {
+    const y =
+      Math.sin((i / n) * 2 * Math.PI) * 100 + Math.random() * 10;
+    return y;
+  });
+}
+
+/**
+ * WASM returns `{ x, y }` with `x` as sample index; remap `x` to timestamps, keep numeric `y`.
+ */
+function wasmRowsToTimeseries(
+  raw: Array<{ x?: unknown; y?: unknown }>
+): timeseriesdata[] {
+  const n = raw.length;
+  const xs = defaultTimestamps(n);
+  return raw.map((p, i) => {
+    const yn = Number(p.y);
+    return {
+      x: xs[i]!,
+      y: Number.isFinite(yn) ? yn : 0,
+    };
+  });
 }
 
 /**
@@ -37,7 +79,7 @@ async function initializeWasm() {
     await wasmModule.default();
     wasmAvailable = true;
     return wasmModule;
-  } catch (error) {
+  } catch {
     wasmAvailable = false;
     return null;
   }
@@ -93,9 +135,11 @@ async function handleGenerateSeries(payload: { count: number }) {
         // Try to use WASM
         const wasmModule = await import("@/compute/wasm/wasm_math");
         const result = wasmModule.generate_series(payload.count);
-        data = Array.from(result);
+        data = wasmRowsToTimeseries(
+          Array.from(result) as Array<{ x?: unknown; y?: unknown }>
+        );
         source = 'wasm';
-      } catch (wasmError) {
+      } catch {
         // Use JavaScript fallback
         data = generateSineWaveJS(payload.count);
         source = 'javascript';

@@ -1,6 +1,6 @@
 // Local main-thread service (no React/hooks)
 import * as LocalStore from "@/core/storage/localStorage";
-import type { RpcRequest, RpcResponse } from "./protocol";
+import { V, type RpcRequest, type RpcResponse } from "./protocol";
 
 type OkResponse<T = unknown> = RpcResponse & { ok: true; result: T };
 type ErrResponse = RpcResponse & { ok: false; error: unknown };
@@ -35,7 +35,7 @@ export class MiniGrpc {
 
     // 1) Local main-thread routes (no Worker hop)
     if (svc === "LocalStore") {
-      return this.dispatchLocal<T>(method, args);
+      return this.dispatchLocal<T>(method);
     }
 
     // 2) Worker routes
@@ -43,9 +43,9 @@ export class MiniGrpc {
     const req: RpcRequest = {
       v: V,
       id,
-      svc: svc as any,
-      method: method as any,
-      params: args,
+      svc,
+      method,
+      args,
     };
 
     let to: ReturnType<typeof setTimeout> | null = null;
@@ -64,9 +64,12 @@ export class MiniGrpc {
       const msg = await respP;
 
       if (this.isErrResponse(msg)) {
-        // bubble up backend error as Error
-        const errObj = (msg as ErrResponse).error as any;
-        const m = (errObj && (errObj.message || errObj.code)) || "RPC error";
+        const errObj = (msg as ErrResponse).error as {
+          message?: string;
+          code?: string;
+        };
+        const m =
+          (errObj && (errObj.message ?? errObj.code)) || "RPC error";
         throw new Error(String(m));
       }
 
@@ -90,7 +93,7 @@ export class MiniGrpc {
   }
 
   // -------- Local dispatcher (main thread, same RPC feel) --------
-  private async dispatchLocal<T>(method: string, args: unknown[]): Promise<T> {
+  private async dispatchLocal<T>(method: string): Promise<T> {
     switch (method) {
       case "listDatasets":
         return LocalStore.listDatasets() as unknown as T;
@@ -105,20 +108,14 @@ export class MiniGrpc {
   private isOkResponse<T = unknown>(
     msg: RpcResponse | unknown
   ): msg is OkResponse<T> {
-    return (
-      !!msg &&
-      typeof msg === "object" &&
-      (msg as any).ok === true &&
-      typeof (msg as any).id === "string"
-    );
+    if (typeof msg !== "object" || msg === null) return false;
+    const o = msg as Record<string, unknown>;
+    return o.ok === true && typeof o.id === "string";
   }
   private isErrResponse(msg: RpcResponse | unknown): msg is ErrResponse {
-    return (
-      !!msg &&
-      typeof msg === "object" &&
-      (msg as any).ok === false &&
-      typeof (msg as any).id === "string"
-    );
+    if (typeof msg !== "object" || msg === null) return false;
+    const o = msg as Record<string, unknown>;
+    return o.ok === false && typeof o.id === "string";
   }
   private isRpcResponse(x: unknown): x is RpcResponse {
     if (typeof x !== "object" || x === null) return false;

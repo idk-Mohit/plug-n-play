@@ -2,6 +2,15 @@
 
 This document defines the communication protocol between the UI layer and the compute engine (Workers + WASM) in the Plug & Play Dashboard.
 
+## Implementation status (read this first)
+
+| Surface | Status |
+|---------|--------|
+| **Engine RPC worker** ([`src/engine/engine.worker.ts`](../src/engine/engine.worker.ts)) | **Implemented** — envelope `{ v, id, svc, method, args? }` in [`src/core/rpc/config/protocol.ts`](../src/core/rpc/config/protocol.ts); client [`src/core/rpc/config/client.ts`](../src/core/rpc/config/client.ts) |
+| **LocalStore** routes on main thread | **Partial** — e.g. `listDatasets` via `LocalStore` in `MiniGrpc` |
+| **Data worker** (generation) | **Separate protocol** — task/payload messages in [`src/compute/workers/dataWorker.ts`](../src/compute/workers/dataWorker.ts); wrapped by [`src/compute/index.ts`](../src/compute/index.ts) |
+| Full protocol in this doc (versioning, retries, streaming, batch) | **Aspirational** — treat detailed sections as **design targets** until wired in code |
+
 ## 📋 Table of Contents
 
 - [Overview](#overview)
@@ -730,6 +739,5 @@ This protocol specification is part of the Plug & Play Dashboard project and fol
 
 ---
 
-*Last Updated: 2024-02-15*
-*Version: 1.0.0*
-*Maintainer: Plug & Play Dashboard Team*
+*Version: 1.0.0*  
+*Last reviewed: 2026*

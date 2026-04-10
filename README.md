@@ -29,7 +29,7 @@ This system solves that by:
 
 ## 🧱 Built With
 
-- **React 18+**
+- **React 19**
 - **TypeScript**
 - **D3.js**
 - **Jotai** for atomic state management

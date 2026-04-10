@@ -27,3 +27,12 @@ This doc is intentionally short: it’s the shared “how we build” reference 
 - [ ] Manual smoke: open dashboard, add/load a dataset, render at least one chart
 - [ ] Manual perf: pan/zoom/resize; confirm no jank regressions
 
+## Automated verification (last run)
+
+Commands below were run successfully after the foundation pass (worker `format: "es"` in Vite, compute facade, ingestion + RPC alignment):
+
+- `pnpm lint` — **0 errors** (existing repo warnings only: react-hooks exhaustive-deps, react-refresh)
+- `pnpm build` — **success** (`tsc -b && vite build`)
+
+Re-run both before merging substantive chart/engine changes.
+

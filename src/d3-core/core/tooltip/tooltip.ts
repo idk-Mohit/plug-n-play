@@ -1,4 +1,4 @@
-// @ts-nocheck
+// @ts-nocheck — D3 selection typings are intentionally loose here; tighten when refactoring tooltips.
 import * as d3 from "d3";
 import type { timeseriesdata } from "@/types/data.types";
 import type { D3Scale } from "../scales/generateScales";

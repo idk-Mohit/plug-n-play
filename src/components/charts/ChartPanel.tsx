@@ -41,12 +41,14 @@ export function ChartPanel({ id, title, data }: ChartPanelProps) {
       </CardHeader>
       <Separator />
       <CardContent className="px-0 relative">
-        <div
-          data-transitioning={isTransitioning ? "true" : "false"}
-          className="chart-transition-overlay flex gap-3 align-center justify-center"
-        >
-          <Loader key={Math.random()} type="random" size={56} />
-        </div>
+        {isTransitioning ? (
+          <div
+            data-transitioning="true"
+            className="chart-transition-overlay flex gap-3 align-center justify-center"
+          >
+            <Loader key="chart-sidebar-transition" type="random" size={56} />
+          </div>
+        ) : null}
         <BaseChart
           id={id}
           data={data}

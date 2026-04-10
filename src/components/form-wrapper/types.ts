@@ -128,9 +128,7 @@ export interface FormSectionConfig {
 /**
  * Form wrapper props
  */
-export interface FormWrapperProps<
-  T extends Record<string, unknown> = Record<string, unknown>,
-> {
+export interface FormWrapperProps<T extends object = Record<string, unknown>> {
   /** Form sections configuration */
   sections: FormSectionConfig[];
   /** Current form values */

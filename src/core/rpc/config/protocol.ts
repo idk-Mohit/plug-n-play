@@ -1,22 +1,17 @@
-// Protocol version - src/core/rpc/protocol.ts
+// Protocol version - src/core/rpc/config/protocol.ts
 export type RpcVersion = 1;
 export const V: RpcVersion = 1;
 
 /**
- * RpcRequest is the shape of a request sent from the client to the server.
- *
- * @property {number} v - Protocol version
- * @property {string} id - Request id (uuid)
- * @property {"System"} svc - Service name
- * @property {"ping" | "pong"} method - Method name
- * @property {unknown} [params] - Positional arguments (optional)
+ * Request envelope from UI → engine worker.
+ * Use `args` for positional parameters (array), matching worker validation.
  */
 export type RpcRequest = {
   v: RpcVersion;
-  id: string; // uuid
-  svc: "System";
-  method: "ping" | "pong";
-  params?: unknown;
+  id: string;
+  svc: string;
+  method: string;
+  args?: unknown[];
 };
 
 export type RpcOk<T = unknown> = {
@@ -29,7 +24,7 @@ export type RpcErr = {
   v: RpcVersion;
   id: string;
   ok: false;
-  error: { code: "E_BAD_REQUEST" | "E_INTERNAL"; message: string };
+  error: { code: "E_BAD_REQUEST" | "E_INTERNAL" | "E_NOT_FOUND"; message: string };
 };
 export type RpcResponse<T = unknown> = RpcOk<T> | RpcErr;
 
