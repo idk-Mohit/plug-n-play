@@ -4,8 +4,8 @@ import {
   AnimationType as AnimationTypeConst,
   InteractionMode as InteractionModeConst,
   TimeFormat as TimeFormatConst,
-  PathCurveType as PathCurveTypeConst,
 } from "@/enums/chart.enums";
+import { PathCurveType as PathCurveTypeConst } from "@/d3-core/core/curves";
 import type { FormSectionConfig } from "../types";
 
 /**
@@ -26,6 +26,7 @@ export const chartSettingsFormConfig: FormSectionConfig[] = [
           { value: ChartTypeConst.LINE, label: "Line" },
           { value: ChartTypeConst.AREA, label: "Area" },
           { value: ChartTypeConst.SCATTER, label: "Scatter" },
+          { value: ChartTypeConst.BAR, label: "Bar (coming soon)" },
         ],
       },
       {
@@ -186,9 +187,11 @@ export const chartSettingsFormConfig: FormSectionConfig[] = [
 export const getConditionalFields = (chartType: string) => {
   const conditionalFields: FormSectionConfig[] = [];
 
-  // Hide "Show Data Points" for scatter charts
-  if (chartType === ChartTypeConst.SCATTER) {
-    return conditionalFields; // Return empty array to exclude the section
+  if (
+    chartType === ChartTypeConst.SCATTER ||
+    chartType === ChartTypeConst.BAR
+  ) {
+    return conditionalFields;
   }
 
   return conditionalFields;

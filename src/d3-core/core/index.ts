@@ -1,14 +1,10 @@
 /**
- * D3 Core Utilities Exports
- * 
- * Main entry point for all core D3 functionality.
- * Includes scales, axes, renderer, grid, and tooltip utilities.
+ * D3 core utilities: scales, axes, curves, renderer, grid, tooltip.
  */
 
-export * from './scales';
-export * from './axes';
-export * from './renderer';
-export * from './grid';
-export * from './tooltip';
-
-console.log('D3 Core initialized');
+export * from "./scales";
+export * from "./axes";
+export * from "./renderer";
+export * from "./grid";
+export * from "./tooltip";
+export * from "./curves";

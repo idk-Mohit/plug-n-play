@@ -29,15 +29,28 @@ export function ChartSettingsFormWrapper({
     setDrawerState({ enabled: false, chartId: "" });
   };
 
-  // Filter sections based on chart type
   const getFilteredSections = () => {
-    return chartSettingsFormConfig.filter((section) => {
-      // Hide data points section for scatter charts
-      if (section.id === "data-points" && chartSettings.type === "scatter") {
-        return false;
-      }
-      return true;
-    });
+    return chartSettingsFormConfig
+      .filter((section) => {
+        if (
+          section.id === "data-points" &&
+          (chartSettings.type === "scatter" || chartSettings.type === "bar")
+        ) {
+          return false;
+        }
+        return true;
+      })
+      .map((section) => {
+        if (section.id !== "advanced") return section;
+        const hideCurve =
+          chartSettings.type === "scatter" ||
+          chartSettings.type === "bar";
+        if (!hideCurve) return section;
+        return {
+          ...section,
+          fields: section.fields.filter((f) => f.name !== "pathCurve"),
+        };
+      });
   };
 
   if (!drawerState.enabled || drawerState.chartId !== chartId) {

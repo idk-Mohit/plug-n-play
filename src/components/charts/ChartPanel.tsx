@@ -1,7 +1,7 @@
 import { useAtom, useAtomValue } from "jotai";
 import { chartSettingsAtomFamily } from "@/state/ui/chart-setting";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import BaseChart from "@/d3-core/charts/base/BaseChart";
+import CartesianChart from "@/d3-core/charts/cartesian/CartesianChart";
 import type { timeseriesdata } from "@/types/data.types";
 import { sidebarTransitionAtom } from "@/state/ui/layout";
 import { Loader } from "@/components/loader";
@@ -49,7 +49,7 @@ export function ChartPanel({ id, title, data }: ChartPanelProps) {
             <Loader key="chart-sidebar-transition" type="random" size={56} />
           </div>
         ) : null}
-        <BaseChart
+        <CartesianChart
           id={id}
           data={data}
           height={200}
