@@ -10,6 +10,8 @@ This folder holds **authoritative** technical docs for Plug & Play. **Canonical 
 | [`DATA_FLOW.md`](DATA_FLOW.md) | How data moves from sources to charts |
 | [`ENGINE_PROTOCOL.md`](ENGINE_PROTOCOL.md) | RPC / worker message shapes |
 | [`ENGINEERING_STANDARDS.md`](ENGINEERING_STANDARDS.md) | How we build (lint, perf, UI) |
+| [`GIT_WORKTREES.md`](GIT_WORKTREES.md) | Parallel branches: `git worktree` + `pnpm worktree:add` |
+| [`UI_THEME.md`](UI_THEME.md) | Agent-facing UI theme: shadcn patterns, typography, dense panels (chart drawer reference) |
 
 ## Planned / not yet in tree
 

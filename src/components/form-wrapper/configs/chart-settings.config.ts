@@ -6,21 +6,30 @@ import {
   TimeFormat as TimeFormatConst,
 } from "@/enums/chart.enums";
 import { PathCurveType as PathCurveTypeConst } from "@/d3-core/core/curves";
+import {
+  CircleDot,
+  LayoutGrid,
+  Palette,
+  SlidersHorizontal,
+  Sparkles,
+} from "lucide-react";
 import type { FormSectionConfig } from "../types";
 
 /**
- * Configuration for chart settings form using FormWrapper
- * This replaces the manual form implementation in ChartFullSettingDrawer
+ * Chart settings: structured sections (collapsible) for the full settings drawer.
  */
 export const chartSettingsFormConfig: FormSectionConfig[] = [
   {
     id: "basic-settings",
-    title: "Basic Settings",
+    title: "Chart & grid",
+    icon: LayoutGrid,
+    collapsible: true,
+    defaultOpen: true,
     fields: [
       {
         name: "type",
         type: "select",
-        label: "Chart Type",
+        label: "Chart type",
         required: true,
         options: [
           { value: ChartTypeConst.LINE, label: "Line" },
@@ -32,7 +41,7 @@ export const chartSettingsFormConfig: FormSectionConfig[] = [
       {
         name: "grid",
         type: "select",
-        label: "Grid Type",
+        label: "Grid",
         required: true,
         options: [
           { value: GridTypeConst.NONE, label: "None" },
@@ -44,25 +53,29 @@ export const chartSettingsFormConfig: FormSectionConfig[] = [
       {
         name: "showAxes",
         type: "switch",
-        label: "Show Axes",
-        description: "Display X and Y axes on the chart",
+        label: "Show axes",
+        description: "X and Y axes",
+        layout: "inline",
       },
     ],
   },
   {
     id: "appearance",
     title: "Appearance",
+    icon: Palette,
+    collapsible: true,
+    defaultOpen: true,
     fields: [
       {
         name: "stroke",
         type: "color",
-        label: "Stroke Color",
-        description: "Primary color for lines, areas, and scatter points",
+        label: "Stroke color",
+        description: "Lines, areas, and scatter",
       },
       {
         name: "strokeWidth",
         type: "slider",
-        label: "Stroke Width",
+        label: "Stroke width",
         min: 1,
         max: 10,
         step: 0.5,
@@ -72,7 +85,7 @@ export const chartSettingsFormConfig: FormSectionConfig[] = [
       {
         name: "fontSize",
         type: "slider",
-        label: "Font Size",
+        label: "Label font size",
         min: 8,
         max: 20,
         step: 1,
@@ -83,31 +96,39 @@ export const chartSettingsFormConfig: FormSectionConfig[] = [
   },
   {
     id: "data-points",
-    title: "Data Points",
-    description: "Configure data point visibility for line and area charts",
+    title: "Data points",
+    icon: CircleDot,
+    description: "Line and area charts only",
+    collapsible: true,
+    defaultOpen: true,
     fields: [
       {
         name: "showDataPoints",
         type: "switch",
-        label: "Show Data Points",
-        description: "Display individual data points on line and area charts",
+        label: "Show data points",
+        description: "Draw points on the series",
+        layout: "inline",
       },
     ],
   },
   {
     id: "animation",
     title: "Animation",
+    icon: Sparkles,
+    collapsible: true,
+    defaultOpen: false,
     fields: [
       {
         name: "animation.enabled",
         type: "switch",
-        label: "Enable Animation",
-        description: "Animate chart rendering and transitions",
+        label: "Enable animation",
+        description: "Transitions when data or settings change",
+        layout: "inline",
       },
       {
         name: "animation.type",
         type: "select",
-        label: "Animation Type",
+        label: "Style",
         required: true,
         options: [
           { value: AnimationTypeConst.FADE, label: "Fade" },
@@ -119,7 +140,7 @@ export const chartSettingsFormConfig: FormSectionConfig[] = [
       {
         name: "animation.duration",
         type: "slider",
-        label: "Animation Duration",
+        label: "Duration",
         min: 100,
         max: 2000,
         step: 100,
@@ -130,13 +151,16 @@ export const chartSettingsFormConfig: FormSectionConfig[] = [
   },
   {
     id: "advanced",
-    title: "Advanced Settings",
+    title: "Axes, curve & interaction",
+    icon: SlidersHorizontal,
+    collapsible: true,
+    defaultOpen: false,
     fields: [
       {
         name: "pathCurve",
         type: "select",
-        label: "Curve Type",
-        description: "Curve interpolation for line and area charts",
+        label: "Curve type",
+        description: "Line and area interpolation",
         required: true,
         options: [
           { value: PathCurveTypeConst.LINEAR, label: "Linear" },
@@ -148,8 +172,8 @@ export const chartSettingsFormConfig: FormSectionConfig[] = [
       {
         name: "timeFormat",
         type: "select",
-        label: "Time Format",
-        description: "Format for time-based axis labels",
+        label: "Time format",
+        description: "Time axis labels",
         required: true,
         options: [
           { value: TimeFormatConst.AUTO, label: "Auto" },
@@ -161,8 +185,8 @@ export const chartSettingsFormConfig: FormSectionConfig[] = [
       {
         name: "interaction",
         type: "select",
-        label: "Interaction Mode",
-        description: "User interaction capabilities",
+        label: "Interaction",
+        description: "Pan / zoom",
         required: true,
         options: [
           { value: InteractionModeConst.NONE, label: "None" },
@@ -174,16 +198,14 @@ export const chartSettingsFormConfig: FormSectionConfig[] = [
       {
         name: "tooltip",
         type: "switch",
-        label: "Enable Tooltip",
-        description: "Show data tooltips on hover",
+        label: "Tooltips",
+        description: "Show values on hover",
+        layout: "inline",
       },
     ],
   },
 ];
 
-/**
- * Conditional field configurations based on chart type
- */
 export const getConditionalFields = (chartType: string) => {
   const conditionalFields: FormSectionConfig[] = [];
 

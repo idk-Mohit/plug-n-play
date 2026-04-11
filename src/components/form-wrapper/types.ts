@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { LucideIcon } from "lucide-react";
 
 /**
  * Field types supported by FormWrapper
@@ -69,6 +70,8 @@ export interface SwitchFieldConfig extends BaseFieldConfig {
   checkedLabel?: string;
   /** Custom label for unchecked state */
   uncheckedLabel?: string;
+  /** Row: label + control on one line (good for toggles in dense panels) */
+  layout?: "stack" | "inline";
 }
 
 /**
@@ -123,6 +126,12 @@ export interface FormSectionConfig {
   fields: FormFieldConfig[];
   /** Custom className for the section */
   className?: string;
+  /** When true, section is wrapped in a collapsible panel */
+  collapsible?: boolean;
+  /** Initial open state when collapsible (default true) */
+  defaultOpen?: boolean;
+  /** Optional section icon (e.g. GitBook-style sidebar) */
+  icon?: LucideIcon;
 }
 
 /**
