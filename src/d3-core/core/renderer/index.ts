@@ -1,7 +1,9 @@
 /**
- * D3 Renderer Utilities Exports
- * 
- * Main entry point for all rendering-related functionality.
+ * Cartesian series renderers: one module per visual (line, area, scatter).
+ * Import the specific renderer you need; shared helpers live in `./shared`.
  */
 
-export * from './generateSeries';
+export * from "./shared";
+export * from "./line";
+export * from "./area";
+export * from "./scatter";

@@ -1,42 +1,27 @@
-/**
- * Cartesian chart shell: shared X/Y scales, grid, axes, and line/area/scatter series.
- *
- * Future `ChartType.BAR` will render bars in this same coordinate system; until then
- * selecting Bar in settings shows axes only (no series) so the app stays stable.
- */
-
-import { memo, useEffect, useRef, useState } from "react";
+import { type MutableRefObject, type RefObject, useEffect } from "react";
 import * as d3 from "d3";
-import { useAtomValue } from "jotai";
-import { sidebarTransitionAtom } from "@/state/ui/layout";
 import { generateGrid } from "@/d3-core/core/grid/gridGenerator";
 import { renderAxes } from "@/d3-core/core/axes/generateAxes";
+import { renderAreaSeries } from "@/d3-core/core/renderer/area";
+import { renderLineSeries } from "@/d3-core/core/renderer/line";
 import {
   renderScatterPoints,
-  renderSeries,
-  type RenderSeriesChartType,
-} from "@/d3-core/core/renderer/generateSeries";
+  renderScatterSeries,
+} from "@/d3-core/core/renderer/scatter";
 import type { timeseriesdata } from "@/types/data.types";
 import { generateScale } from "@/d3-core/core/scales/generateScales";
-import {
-  chartSettingsAtomFamily,
-  type ChartType,
-  type GridType,
-  type PathCurveType,
+import type {
+  ChartSettings,
+  ChartType,
+  GridType,
+  PathCurveType,
 } from "@/state/ui/chart-setting";
 import { ChartType as ChartTypeConst } from "@/enums/chart.enums";
 import { addHtmlTooltip } from "@/d3-core/core/tooltip/tooltip";
+import { hashCartesianData } from "../utils";
 
-interface BaseChartProps {
-  id: string;
-  data: timeseriesdata[];
-  height?: number;
-  type: ChartType;
-  gridType?: GridType;
-}
-
-/** Cached render state for incremental D3 updates */
-interface LastRenderCache {
+/** Cached paint state so we only touch grid/axes/series when something material changes. */
+export interface CartesianLastPaint {
   width: number;
   height: number;
   gridType: GridType;
@@ -58,52 +43,34 @@ function isLineAreaOrScatter(t: ChartType): boolean {
   );
 }
 
-const BaseChart = ({
-  id,
+export interface UseCartesianChartPaintArgs {
+  containerRef: RefObject<HTMLDivElement | null>;
+  svgRef: RefObject<SVGSVGElement | null>;
+  groupRef: RefObject<SVGGElement | null>;
+  data: timeseriesdata[];
+  type: ChartType;
+  gridType: GridType;
+  chartSettings: ChartSettings;
+  renderTrigger: number;
+  lastRef: MutableRefObject<CartesianLastPaint | null>;
+}
+
+/**
+ * Runs the full D3 paint pipeline: margins, scales, grid, axes, series (by type),
+ * optional point overlay, and HTML tooltip. Keeps incremental-update checks
+ * in one place so `CartesianChart` stays a thin shell.
+ */
+export function useCartesianChartPaint({
+  containerRef,
+  svgRef,
+  groupRef,
   data,
-  height = 300,
-  type = ChartTypeConst.LINE,
-  gridType = "both",
-}: BaseChartProps) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const svgRef = useRef<SVGSVGElement | null>(null);
-  const groupRef = useRef<SVGGElement | null>(null);
-  const lastRef = useRef<LastRenderCache | null>(null);
-  const [renderTrigger, setRenderTrigger] = useState(0);
-
-  const isTransitioning = useAtomValue(sidebarTransitionAtom);
-  const chartSettings = useAtomValue(chartSettingsAtomFamily(id));
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const svg = d3
-      .select(container)
-      .append("svg")
-      .attr("preserveAspectRatio", "xMidYMid meet");
-
-    const g = svg.append("g").attr("class", "main-group");
-
-    svgRef.current = svg.node();
-    groupRef.current = g.node();
-
-    let resizeTimeout: number | null = null;
-    const observer = new ResizeObserver(() => {
-      clearTimeout(resizeTimeout!);
-      resizeTimeout = setTimeout(() => {
-        setRenderTrigger((prev) => prev + 1);
-      }, 250);
-    });
-
-    observer.observe(container);
-
-    return () => {
-      observer.disconnect();
-      d3.select(container).select("svg").remove();
-    };
-  }, []);
-
+  type,
+  gridType,
+  chartSettings,
+  renderTrigger,
+  lastRef,
+}: UseCartesianChartPaintArgs): void {
   useEffect(() => {
     if (!containerRef.current || !svgRef.current || !groupRef.current) return;
 
@@ -159,34 +126,49 @@ const BaseChart = ({
     }
 
     const seriesReady = isLineAreaOrScatter(type);
+    const curvedOpts = {
+      data,
+      xKey: "x" as const,
+      yKey: "y" as const,
+      svg: g,
+      scales: { x: xScale, y: yScale },
+      curve: chartSettings.pathCurve,
+      style: {
+        stroke: chartSettings.stroke,
+        strokeWidth: 2,
+        fill: chartSettings.stroke,
+      },
+      animation: {
+        enabled: chartSettings.animation.enabled,
+        duration: chartSettings.animation.duration || 500,
+      },
+    };
 
     if (
       seriesReady &&
       (last?.pathCurve !== chartSettings.pathCurve ||
         last?.type !== type ||
-        last?.dataHash !== hashData(data) ||
+        last?.dataHash !== hashCartesianData(data) ||
         last?.width !== width ||
         last?.height !== chartInnerHeight ||
         last?.stroke !== chartSettings.stroke)
     ) {
-      renderSeries({
-        type: type as RenderSeriesChartType,
-        data,
-        xKey: "x",
-        yKey: "y",
-        svg: g,
-        scales: { x: xScale, y: yScale },
-        curve: chartSettings.pathCurve,
-        style: {
-          stroke: chartSettings.stroke,
-          strokeWidth: 2,
-          fill: chartSettings.stroke,
-        },
-        animation: {
-          enabled: chartSettings.animation.enabled,
-          duration: chartSettings.animation.duration || 500,
-        },
-      });
+      if (type === ChartTypeConst.LINE) {
+        renderLineSeries(curvedOpts);
+      } else if (type === ChartTypeConst.AREA) {
+        renderAreaSeries(curvedOpts);
+      } else if (type === ChartTypeConst.SCATTER) {
+        renderScatterSeries({
+          data,
+          xKey: "x",
+          yKey: "y",
+          svg: g,
+          scales: { x: xScale, y: yScale },
+          style: curvedOpts.style,
+          animation: curvedOpts.animation,
+          className: "series-scatter",
+        });
+      }
     }
 
     if (!seriesReady) {
@@ -238,29 +220,20 @@ const BaseChart = ({
       showDataPoints: chartSettings.showDataPoints,
       stroke: chartSettings.stroke,
       type,
-      dataHash: hashData(data),
+      dataHash: hashCartesianData(data),
       xDomain: xScale.domain(),
       yDomain: yScale.domain(),
       tooltip: chartSettings.tooltip,
     };
-  }, [id, data, type, gridType, chartSettings, renderTrigger]);
-
-  return (
-    <div
-      ref={containerRef}
-      style={{
-        width: "100%",
-        height: `${height}px`,
-        overflow: "hidden",
-      }}
-      className="chart"
-      data-hidden={isTransitioning}
-    />
-  );
-};
-
-function hashData(data: timeseriesdata[]): string {
-  return JSON.stringify(data.map((d) => `${d.x}-${d.y}`)).slice(0, 500);
+  }, [
+    containerRef,
+    svgRef,
+    groupRef,
+    data,
+    type,
+    gridType,
+    chartSettings,
+    renderTrigger,
+    lastRef,
+  ]);
 }
-
-export default memo(BaseChart);

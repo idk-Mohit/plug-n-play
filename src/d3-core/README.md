@@ -11,18 +11,18 @@ d3-core/
 │   ├── curves.ts         # D3 line/area curve factories + PathCurveType (not in enums/)
 │   ├── scales/
 │   ├── axes/
-│   ├── renderer/         # Cartesian line / area / scatter series
+│   ├── renderer/         # `line.ts`, `area.ts`, `scatter.ts`, `shared.ts`
 │   ├── grid/
 │   └── tooltip/
 └── charts/
-    ├── cartesian/        # X/Y charts sharing axes (BaseChart: line, area, scatter; bar planned)
+    ├── cartesian/        # X/Y charts sharing axes (CartesianChart: line, area, scatter; bar planned)
     ├── registry.ts       # Scaffold for lazy-loaded chart families (donut, radial, …)
     └── index.ts          # Re-exports cartesian + registry (for explicit chart imports)
 ```
 
 ## Import strategy (bundle size)
 
-- Use `@/d3-core` or `@/d3-core/core` for **kernel** utilities (scales, axes, tooltip, `curveMap`, `renderSeries`).
+- Use `@/d3-core` or `@/d3-core/core` for **kernel** utilities (scales, axes, tooltip, `curveMap`, series renderers).
 - Import chart components from **`@/d3-core/charts/cartesian/...`** (or `@/d3-core/charts`) so future arc/radial modules can stay in separate chunks.
 - `charts/registry.ts` is the intended place to register `import()`-based loaders for non-Cartesian charts.
 
@@ -59,20 +59,26 @@ Line and area paths use D3 curve factories keyed by persisted settings. Import `
 
 ### Renderer (`core/renderer/`)
 
-```typescript
-import { renderSeries } from "@/d3-core/core/renderer";
+Import the series you need (keeps call sites explicit as you add more chart types):
 
-renderSeries({
-  type: "line",
+```typescript
+import { renderLineSeries } from "@/d3-core/core/renderer/line";
+import { renderAreaSeries } from "@/d3-core/core/renderer/area";
+import { renderScatterSeries } from "@/d3-core/core/renderer/scatter";
+
+renderLineSeries({
   data: chartData,
   xKey: "x",
   yKey: "y",
   svg: chartGroup,
   scales: { x: xScale, y: yScale },
+  curve: pathCurve,
+  style: { stroke: "#333" },
+  animation: { enabled: true, duration: 500 },
 });
 ```
 
-Supports line, area, and scatter. `ChartType.BAR` uses a future bar renderer; `renderSeries` typing excludes `bar` until implemented.
+Shared coordinate helpers: `shared.ts` (`cartesianX`, `cartesianY`, `clearCartesianSeriesPaths`). Bar and histogram will add their own modules alongside these.
 
 ### Tooltip (`core/tooltip/`)
 
@@ -80,12 +86,12 @@ HTML and SVG tooltip helpers for Cartesian (time × value) series. They assume s
 
 ## Cartesian charts (`charts/cartesian/`)
 
-`BaseChart` owns the SVG shell, `ResizeObserver`, margins, scales, grid, axes, series rendering, and tooltip wiring for line / area / scatter. Selecting **Bar** in settings shows axes only until the bar series is implemented.
+`CartesianChart` is a thin component. Imperative D3 work runs in `hooks/useCartesianSvgMount` (SVG + resize) and `hooks/useCartesianChartPaint` (scales, grid, axes, line/area/scatter dispatch, tooltip). Selecting **Bar** in settings shows axes only until a bar renderer exists.
 
 ```typescript
-import BaseChart from "@/d3-core/charts/cartesian/BaseChart";
+import CartesianChart from "@/d3-core/charts/cartesian/CartesianChart";
 
-<BaseChart
+<CartesianChart
   id="my-chart"
   data={data}
   type="line"
@@ -96,11 +102,11 @@ import BaseChart from "@/d3-core/charts/cartesian/BaseChart";
 
 ## Extending
 
-1. **New Cartesian type** (e.g. bar): implement rendering in `core/renderer/` or a dedicated module, then branch inside `BaseChart` or compose a thin wrapper.
+1. **New Cartesian type** (e.g. bar): implement rendering in `core/renderer/` or a dedicated module, then branch inside `useCartesianChartPaint` or compose a thin wrapper.
 2. **New non-Cartesian type** (e.g. donut): add `charts/donut/`, register a lazy loader in `charts/registry.ts`, and render from the view layer with `React.lazy`.
 
 ## Performance notes
 
-- Debounced resize handling in `BaseChart` limits layout thrash.
+- Debounced resize handling in `useCartesianSvgMount` limits layout thrash.
 - Keep heavy transforms out of React render; mutate D3 selections in effects.
 - Prefer explicit imports over a single mega-barrel that re-exports every chart.

@@ -5,5 +5,6 @@
  * The top-level `@/d3-core` entry re-exports core utilities only (not charts).
  */
 
-export { BaseChart } from "./cartesian";
+export { CartesianChart } from "./cartesian";
+export type { CartesianChartProps } from "./cartesian";
 export { chartRegistry } from "./registry";
