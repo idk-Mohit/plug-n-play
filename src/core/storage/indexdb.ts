@@ -27,3 +27,12 @@ export async function idbDelete(key: string) {
   const db = await getDb();
   await db.delete(STORE, key);
 }
+
+/** Keys like `dataset:<uuid>` in the object store (does not load values). */
+export async function idbListDatasetKeys(): Promise<string[]> {
+  const db = await getDb();
+  const keys = await db.getAllKeys(STORE);
+  return keys.filter(
+    (k): k is string => typeof k === "string" && k.startsWith("dataset:"),
+  );
+}
