@@ -8,14 +8,14 @@ import { FormWrapper } from "@/components/form-wrapper";
 import { chartSettingsFormConfig } from "@/components/form-wrapper/configs/chart-settings.config";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
+import { ChartType as ChartTypeConst } from "@/enums/chart.enums";
 
 interface ChartSettingsFormWrapperProps {
   chartId: string;
 }
 
 /**
- * Chart settings drawer implemented using FormWrapper
- * This demonstrates how the FormWrapper can replace manual form implementations
+ * Full chart settings drawer: config-driven sections with collapsible groups.
  */
 export function ChartSettingsFormWrapper({
   chartId,
@@ -34,17 +34,30 @@ export function ChartSettingsFormWrapper({
       .filter((section) => {
         if (
           section.id === "data-points" &&
-          (chartSettings.type === "scatter" || chartSettings.type === "bar")
+          (chartSettings.type === ChartTypeConst.SCATTER ||
+            chartSettings.type === ChartTypeConst.BAR)
         ) {
           return false;
         }
         return true;
       })
       .map((section) => {
+        if (section.id === "animation") {
+          if (!chartSettings.animation.enabled) {
+            return {
+              ...section,
+              fields: section.fields.filter(
+                (f) => f.name === "animation.enabled",
+              ),
+            };
+          }
+          return section;
+        }
+
         if (section.id !== "advanced") return section;
         const hideCurve =
-          chartSettings.type === "scatter" ||
-          chartSettings.type === "bar";
+          chartSettings.type === ChartTypeConst.SCATTER ||
+          chartSettings.type === ChartTypeConst.BAR;
         if (!hideCurve) return section;
         return {
           ...section,
@@ -62,27 +75,37 @@ export function ChartSettingsFormWrapper({
       <div
         className="fixed inset-0 bg-black/50 transition-opacity duration-300 ease-in-out"
         onClick={closeDrawer}
+        aria-hidden
       />
-      <div className="relative ml-auto h-full w-80 bg-background border-l border-border p-6 shadow-lg overflow-y-auto transform transition-transform duration-500 ease-in-out translate-x-0">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-semibold text-foreground">
-            Chart Settings
+      <aside className="relative ml-auto flex h-full w-full max-w-[min(100vw,20rem)] flex-col border-l border-border bg-background shadow-lg">
+        <header className="flex shrink-0 items-center justify-between gap-3 border-b border-border px-4 py-4">
+          <h2 className="text-base font-semibold tracking-tight text-foreground">
+            Chart settings
           </h2>
-          <Button variant="ghost" size="sm" onClick={closeDrawer}>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            type="button"
+            onClick={closeDrawer}
+            className="shrink-0"
+            aria-label="Close settings"
+          >
             <X className="h-4 w-4" />
           </Button>
-        </div>
+        </header>
 
-        <FormWrapper<ChartSettings>
-          sections={getFilteredSections()}
-          values={chartSettings}
-          onUpdate={setChartSettings}
-          title=""
-          description=""
-          showActions={false} // Settings update in real-time
-          className="space-y-6"
-        />
-      </div>
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
+          <FormWrapper<ChartSettings>
+            sections={getFilteredSections()}
+            values={chartSettings}
+            onUpdate={setChartSettings}
+            title=""
+            description=""
+            showActions={false}
+            className="space-y-0"
+          />
+        </div>
+      </aside>
     </div>
   );
 }

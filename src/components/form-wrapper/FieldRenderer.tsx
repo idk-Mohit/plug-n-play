@@ -16,7 +16,7 @@ import {
   FieldError,
   FieldLabel,
 } from "@/components/ui/field";
-import type { FieldRendererProps } from "./types";
+import type { FieldRendererProps, SwitchFieldConfig } from "./types";
 
 /**
  * Renders a single form field based on its configuration
@@ -27,6 +27,39 @@ export function FieldRenderer({
   onChange,
   error,
 }: FieldRendererProps) {
+  if (config.type === "switch") {
+    const sw = config as SwitchFieldConfig;
+    if (sw.layout === "inline") {
+      return (
+        <>
+          <div className="flex items-center justify-between gap-4 rounded-md border border-border/70 bg-muted/25 px-3 py-2.5">
+            <div className="min-w-0 space-y-0.5">
+              <FieldLabel htmlFor={config.name} className="leading-snug">
+                {config.label}
+                {config.required && (
+                  <span className="text-destructive ml-1">*</span>
+                )}
+              </FieldLabel>
+              {config.description && (
+                <FieldDescription className="text-xs leading-relaxed">
+                  {config.description}
+                </FieldDescription>
+              )}
+            </div>
+            <Switch
+              id={config.name}
+              checked={Boolean(value)}
+              onCheckedChange={onChange}
+              disabled={config.disabled}
+              className="shrink-0"
+            />
+          </div>
+          {error && <FieldError>{error}</FieldError>}
+        </>
+      );
+    }
+  }
+
   const renderFieldInput = () => {
     switch (config.type) {
       case "text":
