@@ -1,3 +1,4 @@
+import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -32,16 +33,19 @@ export function FieldRenderer({
     if (sw.layout === "inline") {
       return (
         <>
-          <div className="flex items-center justify-between gap-4 rounded-md border border-border/70 bg-muted/25 px-3 py-2.5">
+          <div className="flex items-center justify-between gap-3 rounded-md border border-border/50 bg-muted/20 px-2.5 py-2">
             <div className="min-w-0 space-y-0.5">
-              <FieldLabel htmlFor={config.name} className="leading-snug">
+              <FieldLabel
+                htmlFor={config.name}
+                className="text-xs font-medium leading-snug"
+              >
                 {config.label}
                 {config.required && (
                   <span className="text-destructive ml-1">*</span>
                 )}
               </FieldLabel>
               {config.description && (
-                <FieldDescription className="text-xs leading-relaxed">
+                <FieldDescription className="text-[11px] leading-snug text-muted-foreground">
                   {config.description}
                 </FieldDescription>
               )}
@@ -77,7 +81,11 @@ export function FieldRenderer({
             }
             placeholder={config.placeholder}
             disabled={config.disabled}
-            className={config.className}
+            className={cn(
+              "h-8 w-full text-xs",
+              config.type === "color" && "cursor-pointer p-0.5",
+              config.className,
+            )}
             min={config.type === "number" ? config.validation?.min : undefined}
             max={config.type === "number" ? config.validation?.max : undefined}
             minLength={config.validation?.minLength}
@@ -119,7 +127,7 @@ export function FieldRenderer({
             onValueChange={onChange}
             disabled={config.disabled}
           >
-            <SelectTrigger>
+            <SelectTrigger className="h-8 w-full text-xs">
               <SelectValue
                 placeholder={config.placeholder || "Select an option"}
               />
@@ -161,9 +169,9 @@ export function FieldRenderer({
           : String(value || sliderConfig.min);
 
         return (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {sliderConfig.showValue && (
-              <div className="text-sm text-muted-foreground">
+              <div className="text-[11px] tabular-nums text-muted-foreground">
                 {displayValue}
               </div>
             )}
@@ -197,7 +205,7 @@ export function FieldRenderer({
             }
             placeholder={baseConfig.placeholder}
             disabled={baseConfig.disabled}
-            className={baseConfig.className}
+            className={cn("h-8 w-full text-xs", baseConfig.className)}
           />
         );
       }
@@ -205,16 +213,21 @@ export function FieldRenderer({
   };
 
   return (
-    <Field>
-      <FieldLabel htmlFor={config.name}>
+    <Field className="space-y-1.5">
+      <FieldLabel
+        htmlFor={config.name}
+        className="text-xs font-medium leading-snug text-foreground"
+      >
         {config.label}
         {config.required && <span className="text-destructive ml-1">*</span>}
       </FieldLabel>
 
-      <FieldContent>{renderFieldInput()}</FieldContent>
+      <FieldContent className="space-y-1.5">{renderFieldInput()}</FieldContent>
 
       {config.description && (
-        <FieldDescription>{config.description}</FieldDescription>
+        <FieldDescription className="text-[11px] leading-snug">
+          {config.description}
+        </FieldDescription>
       )}
 
       {error && <FieldError>{error}</FieldError>}

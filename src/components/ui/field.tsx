@@ -1,19 +1,19 @@
 import * as React from "react";
-import * as SlotPrimitive from "@radix-ui/react-slot";
 
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 
+/**
+ * Vertical stack for label + control + hints. Uses a plain `div` (not Radix Slot)
+ * so multiple children are allowed — Slot would require a single element and breaks
+ * the common FieldLabel + FieldContent + FieldDescription pattern.
+ */
 const Field = React.forwardRef<
-  React.ElementRef<typeof SlotPrimitive.Slot>,
-  React.ComponentPropsWithoutRef<typeof SlotPrimitive.Slot>
+  HTMLDivElement,
+  React.ComponentPropsWithoutRef<"div">
 >(({ className, ...props }, ref) => {
   return (
-    <SlotPrimitive.Slot
-      ref={ref}
-      className={cn("space-y-2", className)}
-      {...props}
-    />
+    <div ref={ref} className={cn("space-y-2", className)} {...props} />
   );
 });
 Field.displayName = "Field";

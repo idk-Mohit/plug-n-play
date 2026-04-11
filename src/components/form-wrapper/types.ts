@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { LucideIcon } from "lucide-react";
 
 /**
  * Field types supported by FormWrapper
@@ -129,6 +130,8 @@ export interface FormSectionConfig {
   collapsible?: boolean;
   /** Initial open state when collapsible (default true) */
   defaultOpen?: boolean;
+  /** Optional section icon (e.g. GitBook-style sidebar) */
+  icon?: LucideIcon;
 }
 
 /**

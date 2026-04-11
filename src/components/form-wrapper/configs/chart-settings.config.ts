@@ -6,6 +6,13 @@ import {
   TimeFormat as TimeFormatConst,
 } from "@/enums/chart.enums";
 import { PathCurveType as PathCurveTypeConst } from "@/d3-core/core/curves";
+import {
+  CircleDot,
+  LayoutGrid,
+  Palette,
+  SlidersHorizontal,
+  Sparkles,
+} from "lucide-react";
 import type { FormSectionConfig } from "../types";
 
 /**
@@ -15,6 +22,7 @@ export const chartSettingsFormConfig: FormSectionConfig[] = [
   {
     id: "basic-settings",
     title: "Chart & grid",
+    icon: LayoutGrid,
     collapsible: true,
     defaultOpen: true,
     fields: [
@@ -54,6 +62,7 @@ export const chartSettingsFormConfig: FormSectionConfig[] = [
   {
     id: "appearance",
     title: "Appearance",
+    icon: Palette,
     collapsible: true,
     defaultOpen: true,
     fields: [
@@ -88,6 +97,7 @@ export const chartSettingsFormConfig: FormSectionConfig[] = [
   {
     id: "data-points",
     title: "Data points",
+    icon: CircleDot,
     description: "Line and area charts only",
     collapsible: true,
     defaultOpen: true,
@@ -104,6 +114,7 @@ export const chartSettingsFormConfig: FormSectionConfig[] = [
   {
     id: "animation",
     title: "Animation",
+    icon: Sparkles,
     collapsible: true,
     defaultOpen: false,
     fields: [
@@ -141,6 +152,7 @@ export const chartSettingsFormConfig: FormSectionConfig[] = [
   {
     id: "advanced",
     title: "Axes, curve & interaction",
+    icon: SlidersHorizontal,
     collapsible: true,
     defaultOpen: false,
     fields: [

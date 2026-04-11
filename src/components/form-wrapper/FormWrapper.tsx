@@ -82,11 +82,11 @@ export function FormWrapper<T extends object = Record<string, unknown>>({
   const renderSectionBody = (section: FormSectionConfig) => (
     <>
       {section.description && (
-        <p className="text-xs text-muted-foreground leading-relaxed">
+        <p className="text-[11px] leading-snug text-muted-foreground">
           {section.description}
         </p>
       )}
-      <FieldGroup className="space-y-3">
+      <FieldGroup className="space-y-2.5">
         {section.fields.map(renderSectionField)}
       </FieldGroup>
     </>
@@ -96,22 +96,29 @@ export function FormWrapper<T extends object = Record<string, unknown>>({
     const isLast = index === sections.length - 1;
 
     if (section.collapsible) {
+      const SectionIcon = section.icon;
       return (
         <Collapsible
           key={section.id}
           defaultOpen={section.defaultOpen ?? true}
           className={cn(
-            "rounded-lg border border-border bg-card/40 shadow-sm",
+            "overflow-hidden rounded-lg border border-border/70 bg-muted/15 shadow-sm",
             section.className,
           )}
         >
-          <CollapsibleTrigger className="group flex w-full items-center justify-between gap-2 px-4 py-3 text-left hover:bg-muted/40 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background rounded-t-lg [&[data-state=open]]:border-b [&[data-state=open]]:border-border">
-            <span className="text-sm font-semibold text-foreground">
+          <CollapsibleTrigger className="group flex w-full items-center gap-2.5 px-3 py-2.5 text-left outline-none transition-colors hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background data-[state=open]:border-b data-[state=open]:border-border/60">
+            {SectionIcon ? (
+              <SectionIcon
+                className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
+                aria-hidden
+              />
+            ) : null}
+            <span className="min-w-0 flex-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               {section.title}
             </span>
-            <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
+            <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
           </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-3 px-4 pb-4 pt-3">
+          <CollapsibleContent className="border-t border-border/40 bg-background/40 px-3 pb-3 pt-2.5">
             {renderSectionBody(section)}
           </CollapsibleContent>
         </Collapsible>
@@ -138,7 +145,7 @@ export function FormWrapper<T extends object = Record<string, unknown>>({
         </div>
       )}
 
-      <div className="space-y-3">{sections.map(renderSection)}</div>
+      <div className="space-y-2">{sections.map(renderSection)}</div>
 
       {showActions && (
         <>
