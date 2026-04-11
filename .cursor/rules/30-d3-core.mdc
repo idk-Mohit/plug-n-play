@@ -1,0 +1,14 @@
+---
+description: d3-core charting/renderer conventions
+globs: src/d3-core/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# d3-core conventions
+
+- Treat `src/d3-core/` as the **rendering engine**: keep it deterministic and fast.
+- Avoid per-frame allocations in hot paths (scales, axes generation, series transforms).
+- Prefer precomputing derived series data outside React render and passing in minimal inputs.
+- Keep chart primitives composable; avoid coupling to container/layout state.
+- When adding chart types, follow the existing `src/d3-core/charts/*` structure and reuse shared utilities.
+

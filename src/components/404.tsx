@@ -1,4 +1,4 @@
-import { activeViewAtom } from "@/atoms/view";
+import { activeViewAtom } from "@/state/ui/view";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useSetAtom } from "jotai";

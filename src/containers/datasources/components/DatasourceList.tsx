@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useState } from "react";
 import { Database, Fullscreen } from "lucide-react";
-import { persistedDatasetsAtom } from "@/atoms/dataset.atom";
+import { persistedDatasetsAtom } from "@/state/data/dataset";
 import { useAtom, useSetAtom } from "jotai";
 import {
   Dialog,
@@ -26,8 +26,12 @@ import type { AnyRecord, uuid } from "@/types/data.types";
 import { dataEngine } from "@/core/data-engine";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { safeFormatDate } from "@/core/date.utils";
-import { activeViewAtom } from "@/atoms/view";
+import { activeViewAtom } from "@/state/ui/view";
 import DatasourceItem from "./DatasourceItem";
+import {
+  DEFAULT_SAMPLE_DATASET_ID,
+  isDefaultSampleDatasetId,
+} from "@/state/data/defaultSampleDataset";
 
 /**
  * DatasetList
@@ -92,6 +96,10 @@ export function DatasourceList() {
   /** Perform delete; close dialog on completion. */
   const deleteDataSetHandler = useCallback(
     async (id: uuid) => {
+      if (isDefaultSampleDatasetId(id)) {
+        setDeleteDataSet(null);
+        return;
+      }
       try {
         setIsDeleting(true);
         await dataEngine.deleteDataset(id);
@@ -124,9 +132,7 @@ export function DatasourceList() {
   return (
     <>
       <div className="space-y-4 w-full shadow-lg animate-in ease-linear fade-in slide-in-from-bottom-100">
-        <h3 className="text-lg font-medium text-foreground">
-          Uploaded Datasets
-        </h3>
+        <h3 className="text-lg font-medium text-foreground">Datasets</h3>
 
         <ScrollArea className="h-[50dvh] w-full rounded-md border">
           <div className="space-y-3 p-2">
@@ -143,6 +149,7 @@ export function DatasourceList() {
                     onAskDelete={() => askDelete(dataset.id)}
                     formatDate={formatDate}
                     onShowGrid={openGrid}
+                    allowDelete={dataset.id !== DEFAULT_SAMPLE_DATASET_ID}
                   />
                   {/* Inject the memoized preview inside the expanded item's <pre> block */}
                   {isExpanded ? (
@@ -165,7 +172,7 @@ export function DatasourceList() {
           if (!open) setExpandedDataset(null);
         }}
       >
-        <DialogContent className="max-w-[90vw] w-full min-h-fit max-h-[80vh] overflow-hidden">
+        <DialogContent className="w-[100vw] min-h-fit max-h-[80vh]">
           <DialogHeader className="gap-4 flex justify-between">
             <DialogTitle>Table View</DialogTitle>
             <DialogDescription />

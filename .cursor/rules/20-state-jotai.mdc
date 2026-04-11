@@ -1,0 +1,14 @@
+---
+description: Jotai state management conventions
+globs: src/state/**/*.ts
+alwaysApply: false
+---
+
+# Jotai conventions (src/state)
+
+- Prefer **many small atoms** over a few large atoms; optimize for minimal invalidation.
+- Separate **UI state** vs **data state** (mirror existing folder structure).
+- Avoid atom write functions that do heavy work; push heavy compute to `src/compute/` or workers.
+- When deriving computed state, prefer atom read functions that are deterministic and cheap.
+- Keep atoms and selectors **pure**; no direct DOM access or side effects.
+

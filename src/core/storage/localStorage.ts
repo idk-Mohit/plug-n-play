@@ -1,4 +1,4 @@
-import type { DatasetMeta } from "@/atoms/dataset.atom";
+import type { DatasetMeta } from "@/state/data/dataset";
 import type { uuid } from "@/types/data.types";
 
 // path: src/core/storage/localStorage.ts

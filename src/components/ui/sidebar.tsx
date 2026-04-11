@@ -22,7 +22,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { sidebarTransitionAtom } from "@/atoms/layout";
+import { sidebarTransitionAtom } from "@/state/ui/layout";
 import { useSetAtom } from "jotai";
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state";

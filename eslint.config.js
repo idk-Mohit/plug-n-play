@@ -25,4 +25,10 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    files: ['src/d3-core/core/tooltip/tooltip.ts'],
+    rules: {
+      '@typescript-eslint/ban-ts-comment': 'off',
+    },
+  },
 )

@@ -13,8 +13,8 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { useAtomValue, useSetAtom } from "jotai";
-import { sidebarTransitionAtom } from "@/atoms/layout";
-import { activeViewAtom } from "@/atoms/view";
+import { sidebarTransitionAtom } from "@/state/ui/layout";
+import { activeViewAtom } from "@/state/ui/view";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const sidebarRef = React.useRef<HTMLDivElement>(null);
@@ -46,8 +46,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       {
         title: "Visualizations",
         url: "#",
-        badge: "Soon",
-        disabled: true,
+        badge: "Beta",
+        onClick: () => setView({ view: "visuals" }),
         active: view === "visuals",
       },
       {
@@ -96,7 +96,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              className="data-[slot=sidebar-menu-button]:!p-1.5"
+              className="data-[slot=sidebar-menu-button]:!p-1.5 cursor-pointer"
             >
               <a href="#dashboard">
                 <span className="text-base font-semibold">Plug And Play</span>
@@ -113,7 +113,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              className="data-[slot=sidebar-menu-button]:!p-1.5 border"
+              className="data-[slot=sidebar-menu-button]:!p-1.5 border cursor-pointer"
               onClick={() => setView({ view: "changelogs" })}
             >
               <span className="text-base font-semibold">Change logs</span>

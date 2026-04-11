@@ -1,0 +1,206 @@
+{
+  "version": 1,
+  "updates": [
+    {
+      "id": "2026-04-11",
+      "date": "Apr 11, 2026",
+      "title": "D3 engine: modular renderers, CartesianChart & registry",
+      "tags": ["Refactor", "Feature"],
+      "sections": [
+        {
+          "title": "Renderer & core",
+          "items": [
+            "Split line, area, and scatter into dedicated modules (`line.ts`, `area.ts`, `scatter.ts`) with shared `shared.ts` coordinate helpers.",
+            "Move D3 curve factories to `core/curves.ts`; state and enums no longer own `curveMap`.",
+            "Rename BaseChart to CartesianChart; extract `useCartesianSvgMount` and `useCartesianChartPaint` for SVG lifecycle vs paint pipeline.",
+            "Top-level `d3-core` barrel exports core utilities only; chart code is imported by path to keep chunks explicit.",
+            "Add `charts/registry.ts` scaffold for future lazy-loaded families (donut, radial, …).",
+            "Tooltip: remove `@ts-nocheck`, normalize `x` as Date for time scales; strip debug `console.log` from d3-core entrypoints.",
+            "ChartType.BAR appears in settings as “coming soon”; axes render without series until bar renderer exists."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "2026-04-10",
+      "date": "Apr 10, 2026",
+      "title": "Data layer, compute facade & developer tooling",
+      "tags": ["Feature", "Refactor", "Chore"],
+      "sections": [
+        {
+          "title": "Data & compute",
+          "items": [
+            "Stabilize data-engine usage for datasets and RPC-backed reads.",
+            "Compute facade (`compute/`) for WASM-backed series generation and related helpers.",
+            "Built-in sample dataset with configurable point count and default sample IDs; Home uses the same pipeline for uploads vs sample data."
+          ]
+        },
+        {
+          "title": "Docs & agent tooling",
+          "items": [
+            "Cursor rules: project context, React/TS, Jotai, D3-core, performance guardrails.",
+            "Agent onboarding (`AGENTS.md`); repo-local skills (frontend UI, React patterns, performance, system design).",
+            "Enhance agent skills and editor configuration for dashboard work."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "2025-10-15",
+      "date": "Oct 15, 2025",
+      "title": "Dataset containers, file uploads & changelog",
+      "tags": ["Feature", "Fix", "Chore"],
+      "sections": [
+        {
+          "title": "New features",
+          "items": [
+            "Add ButtonGroup component for enhanced button layouts.",
+            "Implement Dataset container for dataset management and display.",
+            "Create Datasources container for handling data source uploads.",
+            "Develop DatasourceList component for displaying datasets with previews.",
+            "Introduce JsonUpload component for JSON data uploads with validation.",
+            "Implement FileUpload component for CSV and JSON file uploads.",
+            "Add ChangelogPage to display application updates and changes.",
+            "Create UpdateCard component for rendering individual update entries.",
+            "Implement OPFS utility functions for file system access."
+          ]
+        },
+        {
+          "title": "Fixes",
+          "items": ["Add type definitions for global file system interfaces."]
+        },
+        {
+          "title": "Chores & refactors",
+          "items": [
+            "Refactor and organize code for improved readability and maintainability."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "2025-10-13",
+      "date": "Oct 13, 2025",
+      "title": "Enhanced date handling & scroll UI",
+      "tags": ["Feature", "Fix"],
+      "sections": [
+        {
+          "title": "Improvements",
+          "items": [
+            "Add d3-time-format and types for robust date formatting in charts.",
+            "Introduce ScrollArea and integrate into dataset list.",
+            "JSON upload UX: textarea input with validation and error states."
+          ]
+        },
+        {
+          "title": "Bug fixes",
+          "items": ["Remove unused imports (e.g. ScrollArea in DatasetsPage)."]
+        }
+      ]
+    },
+    {
+      "id": "2025-08-22",
+      "date": "Aug 22, 2025",
+      "title": "Dataset management & validation",
+      "tags": ["Feature", "Refactor"],
+      "sections": [
+        {
+          "title": "Improvements",
+          "items": [
+            "Add lodash-es utilities; introduce persisted Jotai atoms for datasets.",
+            "Implement dataset upload (JSON/CSV) with validation pipeline.",
+            "Add Activity and Visuals views; switch Home to ViewRenderer."
+          ]
+        },
+        {
+          "title": "Changes",
+          "items": [
+            "Force dark theme; tidy imports and comments across components."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "2025-07-24",
+      "date": "Jul 24, 2025",
+      "title": "Tooltip overhaul & UI polish",
+      "tags": ["Fix", "Refactor"],
+      "sections": [
+        {
+          "title": "Changes",
+          "items": [
+            "Replace SVG tooltip with HTML tooltip; auto arrow direction.",
+            "Refine tooltip positioning; remove unused Arrow import."
+          ]
+        },
+        {
+          "title": "Chore",
+          "items": ["Add favicon and update index.html metadata."]
+        }
+      ]
+    },
+    {
+      "id": "2025-07-20",
+      "date": "Jul 20, 2025",
+      "title": "Chart settings & performance",
+      "tags": ["Feature", "Refactor"],
+      "sections": [
+        {
+          "title": "Improvements",
+          "items": [
+            "Grid type and data-point visibility toggles in chart settings.",
+            "Base chart component: SVG tooltip support hook; settings propagation cleanup."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "2025-07-08",
+      "date": "Jul 8, 2025",
+      "title": "Color picker & rendering improvements",
+      "tags": ["Feature", "Fix", "Refactor"],
+      "sections": [
+        {
+          "title": "Improvements",
+          "items": [
+            "Add react-colorful and ColorSelector; gradient fill support for area charts.",
+            "Streamline renderAxes and series rendering; improve grid generation (idempotent)."
+          ]
+        },
+        {
+          "title": "Bug fixes",
+          "items": ["Type fixes for lastRef; tooltip data handling improvements."]
+        }
+      ]
+    },
+    {
+      "id": "2025-07-07",
+      "date": "Jul 7, 2025",
+      "title": "Type support for WebAssembly bridge",
+      "tags": ["Chore"],
+      "sections": [
+        {
+          "title": "Improvements",
+          "items": [
+            "Add TypeScript declarations for wasm_math_bg.wasm (memory and bindings)."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "2025-07-05",
+      "date": "Jul 5, 2025",
+      "title": "Initial setup & worker-based data",
+      "tags": ["Feature"],
+      "sections": [
+        {
+          "title": "Improvements",
+          "items": [
+            "Project bootstrap: Vite, React, Tailwind, TypeScript.",
+            "Add dataWorker.ts for WASM-backed time-series generation.",
+            "Create simple line chart demo and TS configs (app and node)."
+          ]
+        }
+      ]
+    }
+  ]
+}

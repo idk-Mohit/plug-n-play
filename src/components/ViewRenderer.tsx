@@ -1,8 +1,9 @@
 import { useAtomValue, useSetAtom } from "jotai";
 import { lazy, Suspense, useEffect } from "react";
-import { activeViewAtom } from "@/atoms/view";
+import { activeViewAtom } from "@/state/ui/view";
 import { HomeView } from "@/containers";
-import { setBreadcrumbsAtom } from "@/atoms/breadcrumbs";
+import { setBreadcrumbsAtom } from "@/state/ui/breadcrumbs";
+import type { BreadcrumbItem } from "@/state/ui/breadcrumbs";
 import { ErrorBoundary } from "./ErrorBoundary";
 import NotFound from "./404";
 import { useViewSync } from "@/hooks/useViewAsync";
@@ -39,9 +40,10 @@ export default function ViewRenderer() {
   }[view];
 
   useEffect(() => {
-    setBreadcrumbs(
-      String(view).charAt(0).toUpperCase() + String(view).slice(1)
-    );
+    const label =
+      String(view).charAt(0).toUpperCase() + String(view).slice(1);
+    const trail: BreadcrumbItem[] = [{ label }];
+    setBreadcrumbs(trail);
   }, [view, setBreadcrumbs]);
 
   return (

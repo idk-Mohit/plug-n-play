@@ -1,0 +1,11 @@
+# Chart Settings Components
+
+This directory contains UI components for chart configuration and settings.
+
+## Purpose
+- ChartFullSettingDrawer - Comprehensive settings panel
+- QuickSetting - Quick access controls
+- Chart configuration forms and controls
+
+## Usage
+These components are used by ChartPanel to provide chart customization options.

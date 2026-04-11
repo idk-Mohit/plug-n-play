@@ -9,11 +9,15 @@ import {
 import { useRpc } from "@/hooks/useRPC";
 import { useCallback, useEffect, useState } from "react";
 import { useAtom, useAtomValue } from "jotai";
-import { activeDatasetAtom, type DatasetMeta } from "@/atoms/dataset.atom";
-import { activeViewAtom } from "@/atoms/view";
+import { activeDatasetAtom, type DatasetMeta } from "@/state/data/dataset";
+import { activeViewAtom } from "@/state/ui/view";
 import { dataEngine } from "@/core/data-engine";
 import type { uuid } from "@/types/data.types";
 import { FooterRowCount, UploadDate } from "./FooterAtoms";
+import {
+  DEFAULT_SAMPLE_DATASET_ID,
+  createDefaultSampleDatasetMeta,
+} from "@/state/data/defaultSampleDataset";
 
 export function SiteFooter() {
   const rpc = useRpc();
@@ -32,7 +36,16 @@ export function SiteFooter() {
   const getListDatasetsCallback = useCallback(async () => {
     try {
       const listDatasets: DatasetRef[] = await datasetsController.getList(rpc);
-      setDataSetRef(listDatasets);
+      const defaultRef: DatasetRef = {
+        id: DEFAULT_SAMPLE_DATASET_ID,
+        name: createDefaultSampleDatasetMeta().name,
+      };
+      const merged = listDatasets.some(
+        (d) => d.id === DEFAULT_SAMPLE_DATASET_ID
+      )
+        ? listDatasets
+        : [defaultRef, ...listDatasets];
+      setDataSetRef(merged);
     } catch (e) {
       console.error(e);
     }

@@ -1,0 +1,19 @@
+---
+description: React + TypeScript conventions for src/
+globs: src/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# React + TypeScript standards
+
+- **Components**: prefer small components with clear props; extract reusable logic into hooks in `src/hooks/`.
+- **Effects**: avoid effects that set state unconditionally; guard dependencies carefully to prevent loops.
+- **State updates**: prefer stable callbacks and avoid creating new objects/arrays in render for props to heavy children.
+- **Types**: avoid `any`; prefer narrow unions and explicit return types for exported functions.
+- **Imports**: use `@/` alias; keep relative imports within the same folder only when it improves clarity.
+
+## UI components
+
+- Prefer `src/components/ui/*` primitives, then compose in `src/components/` and `src/containers/`.
+- Keep styling consistent with Tailwind + existing patterns (no one-off CSS unless necessary).
+

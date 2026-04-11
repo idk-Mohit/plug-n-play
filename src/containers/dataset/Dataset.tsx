@@ -1,5 +1,5 @@
 import { dataEngine } from "@/core/data-engine";
-import { persistedDatasetsAtom } from "@/atoms/dataset.atom";
+import { persistedDatasetsAtom } from "@/state/data/dataset";
 import { useAtomValue } from "jotai";
 import { type AnyRecord } from "@/types/data.types";
 import { useEffect, useState } from "react";

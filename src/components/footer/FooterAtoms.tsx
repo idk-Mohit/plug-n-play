@@ -1,4 +1,4 @@
-import { activeViewAtom } from "@/atoms/view";
+import { activeViewAtom } from "@/state/ui/view";
 import { timeFormat } from "d3-time-format";
 import { useAtomValue } from "jotai";
 
