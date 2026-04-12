@@ -8,7 +8,8 @@
     "prepare": "husky install",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "worktree:add": "bash scripts/git-worktree-add.sh"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.15",

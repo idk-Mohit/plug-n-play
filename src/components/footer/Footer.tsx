@@ -2,14 +2,14 @@ import { Separator } from "@/components/ui/separator";
 import { PanelBottomOpen } from "lucide-react";
 import IconButton from "../IconButton";
 import { Combobox } from "../ui/combobox";
-import {
-  datasetsController,
-  type DatasetRef,
-} from "@/core/rpc/controllers/datasources";
-import { useRpc } from "@/hooks/useRPC";
-import { useCallback, useEffect, useState } from "react";
+import type { DatasetRef } from "@/core/rpc/controllers/datasources";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAtom, useAtomValue } from "jotai";
-import { activeDatasetAtom, type DatasetMeta } from "@/state/data/dataset";
+import {
+  activeDatasetAtom,
+  persistedDatasetsAtom,
+  type DatasetMeta,
+} from "@/state/data/dataset";
 import { activeViewAtom } from "@/state/ui/view";
 import { dataEngine } from "@/core/data-engine";
 import type { uuid } from "@/types/data.types";
@@ -20,36 +20,28 @@ import {
 } from "@/state/data/defaultSampleDataset";
 
 export function SiteFooter() {
-  const rpc = useRpc();
-  // atoms
   const activeView = useAtomValue(activeViewAtom);
   const [activeDatasetRef, setActiveDatasetRef] = useAtom(activeDatasetAtom);
+  const persistedDatasets = useAtomValue(persistedDatasetsAtom);
 
-  // local-states
-  // get all data-sets if active view is dashboard
-  const [dataSetRef, setDataSetRef] = useState<DatasetRef[] | []>([]);
-  // get meta-data for active data-set
+  const dataSetRef = useMemo((): DatasetRef[] => {
+    const defaultRef: DatasetRef = {
+      id: DEFAULT_SAMPLE_DATASET_ID,
+      name: createDefaultSampleDatasetMeta().name,
+    };
+    const fromPersisted = persistedDatasets.map((d) => ({
+      id: d.id,
+      name: d.name,
+    }));
+    const hasDefault = fromPersisted.some(
+      (d) => d.id === DEFAULT_SAMPLE_DATASET_ID,
+    );
+    if (hasDefault) return fromPersisted;
+    return [defaultRef, ...fromPersisted];
+  }, [persistedDatasets]);
+
   const [activeDataSetMeta, setActiveDataSetMeta] =
     useState<DatasetMeta | null>(null);
-
-  // const getListDatasets = async () => {};
-  const getListDatasetsCallback = useCallback(async () => {
-    try {
-      const listDatasets: DatasetRef[] = await datasetsController.getList(rpc);
-      const defaultRef: DatasetRef = {
-        id: DEFAULT_SAMPLE_DATASET_ID,
-        name: createDefaultSampleDatasetMeta().name,
-      };
-      const merged = listDatasets.some(
-        (d) => d.id === DEFAULT_SAMPLE_DATASET_ID
-      )
-        ? listDatasets
-        : [defaultRef, ...listDatasets];
-      setDataSetRef(merged);
-    } catch (e) {
-      console.error(e);
-    }
-  }, [rpc]);
 
   const getActiveDataSet = useCallback(
     (id: uuid) => {
@@ -63,24 +55,10 @@ export function SiteFooter() {
   );
 
   useEffect(() => {
-    // if active view is dashboard and active data set reference is null.
-    // No active data set selected.
-    if (activeView.view === "dashboard" && !activeDatasetRef)
-      getListDatasetsCallback();
-
-    // if active view is dashboard and active data set reference is not null.
-    // Fetch the meta-data for the active data set
     if (activeView.view === "dashboard" && activeDatasetRef) {
       getActiveDataSet(activeDatasetRef.id);
     }
-  }, [
-    getListDatasetsCallback,
-    activeView.view,
-    getActiveDataSet,
-    activeDatasetRef,
-  ]);
-
-  if (!rpc) return <div>initing…</div>;
+  }, [activeView.view, getActiveDataSet, activeDatasetRef]);
 
   const dataSetMetaHandler = (dataset: DatasetRef | null) => {
     if (dataset) {

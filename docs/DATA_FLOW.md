@@ -9,6 +9,7 @@ This document explains how data flows through the Plug & Play Dashboard system i
 | Default sample data via worker | **Implemented** — `generate_series` in [`src/compute/workers/dataWorker.ts`](../src/compute/workers/dataWorker.ts), called via [`src/compute/index.ts`](../src/compute/index.ts) |
 | JSON paste → IndexedDB | **Implemented** — [`src/containers/datasources/components/JsonUpload.tsx`](../src/containers/datasources/components/JsonUpload.tsx) + [`src/core/data-engine.ts`](../src/core/data-engine.ts) |
 | File upload (JSON/CSV) → IndexedDB | **Implemented** — same persistence path as JSON via `dataEngine` |
+| Dataset **metadata** list (names, previews, ids for the UI) | **localStorage** key `datasources` + **IndexedDB** backup key `datasources-manifest` — see [`src/state/data/dataset-storage.ts`](../src/state/data/dataset-storage.ts). Large previews can exceed the ~5MB localStorage quota; the full dataset always remains in IDB under `dataset:${id}`. |
 | Real-time / WebSocket / export flows | **Not implemented** — sections below are **design targets** |
 | Service worker caching | **Not implemented** |
 

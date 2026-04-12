@@ -5,6 +5,7 @@ This repo is **Plug & Play**: a performance-first dashboard + charting engine bu
 ## What to read first (in order)
 
 - `README.md`: product vision + goals
+- **`docs/UI_THEME.md`**: compact dashboard UI theme (shadcn + Tailwind + drawer patterns) — **read before building or polishing UI**
 - `src/README.md`: folder map and core principles
 - `src/core/`: infrastructure (RPC, storage, data-engine)
 - `src/state/`: Jotai atoms + UI/data state
@@ -16,6 +17,7 @@ This repo is **Plug & Play**: a performance-first dashboard + charting engine bu
 - `pnpm dev`: run the app
 - `pnpm lint`: lint
 - `pnpm build`: typecheck + build
+- **Parallel branches:** `docs/GIT_WORKTREES.md` — `pnpm worktree:add -- <branch>` (defaults to branching from **`dev`**; interactive prompt or `--from-current` / `--base`)
 
 ## Optional agent skills (repo-local)
 
@@ -24,7 +26,7 @@ Task-specific playbooks live in `.cursor/skills/*/SKILL.md` (e.g. frontend UI, s
 ## Project conventions (high-signal)
 
 - **Imports**: use the `@/` alias (see `tsconfig.json`, `vite.config.ts`).
-- **UI**: prefer components in `src/components/ui/` (shadcn-style) and composition in `src/components/` + `src/containers/`.
+- **UI**: prefer components in `src/components/ui/` (shadcn-style) and composition in `src/components/` + `src/containers/`; follow **`docs/UI_THEME.md`** for spacing, type scale, panels, and forms.
 - **State**: prefer fine-grained Jotai atoms; avoid “god” atoms that invalidate large subtrees.
 - **Performance**: avoid per-render allocations in hot paths (renderers, chart transforms, table virtualization).
 - **Heavy compute**: keep it out of React render; consider `src/compute/` and workers in `src/engine/`.

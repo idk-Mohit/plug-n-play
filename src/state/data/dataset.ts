@@ -8,6 +8,7 @@
 import type { DatasetRef } from "@/core/rpc/controllers/datasources";
 import type { uuid } from "@/types/data.types";
 import { atomWithStorage } from "jotai/utils";
+import { createPersistedDatasetsStorage } from "./dataset-storage";
 
 /**
  * Supported dataset types for file uploads
@@ -51,7 +52,9 @@ export type Dataset = DatasetMeta;
  */
 export const persistedDatasetsAtom = atomWithStorage<DatasetMeta[]>(
   "datasources",
-  []
+  [],
+  createPersistedDatasetsStorage(),
+  { getOnInit: true },
 );
 
 /**
