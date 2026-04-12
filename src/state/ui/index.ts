@@ -21,4 +21,6 @@ export * from './rpcActions';
 // Breadcrumb navigation
 export * from './breadcrumbs';
 
-console.log('UI State initialized');
+// Global toast & confirm dialog atoms (singleton hosts in App)
+export * from './toast';
+export * from './dialog';

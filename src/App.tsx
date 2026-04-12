@@ -1,15 +1,26 @@
 import { ThemeProvider } from "./components/theme-provider";
+import { AppConfirmDialog } from "./components/AppConfirmDialog";
+import { AppToast } from "./components/AppToast";
 import ViewRenderer from "./components/ViewRenderer";
 import Dashboard from "./containers/dashboard/Dashboard";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { useSetAtom } from "jotai";
-import { useEffect } from "react";
-import { idbGet, idbListDatasetKeys, idbSave } from "@/core/storage/indexdb";
-import { persistedDatasetsAtom, type DatasetMeta } from "@/state/data/dataset";
+import { useStore } from "jotai/react";
+import { useCallback, useEffect, useRef } from "react";
+import { idbGet, idbListDatasetKeys } from "@/core/storage/indexdb";
 import {
+  activeDatasetAtom,
+  persistedDatasetsAtom,
+  type DatasetMeta,
+} from "@/state/data/dataset";
+import {
+  clearAllIndexedDbDatasetStorage,
+  countRecoverableDatasetIds,
   DATASETS_MANIFEST_IDB_KEY,
-  mergeDatasetManifests,
-  mergePlaceholderMetasForIdbDatasetKeys,
-  slimDatasetMetaForPersistence,
+  hasIndexedDbRecoverableDatasets,
+  hydrateMissingPreviewsFromIdb,
+  isPersistedDatasourcesListEmptyInLs,
+  mergePersistedDatasetsWithIndexedDbSources,
 } from "@/state/data/dataset-storage";
 import {
   createDefaultSampleDatasetMeta,
@@ -37,7 +48,31 @@ import {
  * @returns The main app component.
  */
 function App() {
+  const store = useStore();
   const setPersistedDatasets = useSetAtom(persistedDatasetsAtom);
+  const setActiveDataset = useSetAtom(activeDatasetAtom);
+  const { open: openConfirmDialog, close: closeConfirmDialog } =
+    useConfirmDialog();
+  const recoveryPromptedRef = useRef(false);
+
+  const applyMergedAndHydrated = useCallback(
+    async (cancelled: () => boolean) => {
+      const fromIdb = await idbGet<DatasetMeta[]>(DATASETS_MANIFEST_IDB_KEY);
+      const datasetKeys = await idbListDatasetKeys();
+      if (cancelled()) return;
+      const prev = store.get(persistedDatasetsAtom);
+      const merged = mergePersistedDatasetsWithIndexedDbSources(
+        prev,
+        fromIdb,
+        datasetKeys,
+        DEFAULT_SAMPLE_DATASET_ID,
+      );
+      const hydrated = await hydrateMissingPreviewsFromIdb(merged);
+      if (cancelled()) return;
+      setPersistedDatasets(hydrated);
+    },
+    [setPersistedDatasets, store],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -45,32 +80,72 @@ function App() {
       const fromIdb = await idbGet<DatasetMeta[]>(DATASETS_MANIFEST_IDB_KEY);
       const datasetKeys = await idbListDatasetKeys();
       if (cancelled) return;
-      setPersistedDatasets((prev) => {
-        if (prev.length > 0 && (!fromIdb || fromIdb.length === 0)) {
-          void idbSave(
-            DATASETS_MANIFEST_IDB_KEY,
-            prev.map(slimDatasetMetaForPersistence),
-          );
-        }
-        const mergedManifest = mergeDatasetManifests(prev, fromIdb ?? []);
-        const withIdbRows = mergePlaceholderMetasForIdbDatasetKeys(
-          mergedManifest,
+
+      if (
+        isPersistedDatasourcesListEmptyInLs() &&
+        hasIndexedDbRecoverableDatasets(
+          fromIdb,
           datasetKeys,
           DEFAULT_SAMPLE_DATASET_ID,
+        )
+      ) {
+        if (recoveryPromptedRef.current) return;
+        recoveryPromptedRef.current = true;
+        const count = Math.max(
+          1,
+          countRecoverableDatasetIds(
+            fromIdb,
+            datasetKeys,
+            DEFAULT_SAMPLE_DATASET_ID,
+          ),
         );
-        if (withIdbRows.some((d) => d.id === DEFAULT_SAMPLE_DATASET_ID)) {
-          return withIdbRows;
-        }
-        return [createDefaultSampleDatasetMeta(), ...withIdbRows];
-      });
+        const countLabel =
+          count === 1 ? "one stored dataset" : `${count} stored datasets`;
+        openConfirmDialog({
+          title: "Stored data found",
+          subheading: `${countLabel} found in IndexedDB`,
+          description:
+            "Your dataset list was cleared (for example after a hard reload or clearing site data), but stored data remains. Restore them to the list with a short preview, or remove that stored data permanently.",
+          dismissible: false,
+          variant: "confirm",
+          primaryButton: {
+            label: "Restore datasets",
+            onClick: () => {
+              closeConfirmDialog();
+              void applyMergedAndHydrated(() => false);
+            },
+          },
+          secondaryButton: {
+            label: "Delete stored data",
+            variant: "destructive",
+            onClick: async () => {
+              closeConfirmDialog();
+              await clearAllIndexedDbDatasetStorage();
+              setActiveDataset(null);
+              setPersistedDatasets([createDefaultSampleDatasetMeta()]);
+            },
+          },
+        });
+        return;
+      }
+
+      await applyMergedAndHydrated(() => cancelled);
     })();
     return () => {
       cancelled = true;
     };
-  }, [setPersistedDatasets]);
+  }, [
+    applyMergedAndHydrated,
+    closeConfirmDialog,
+    openConfirmDialog,
+    setActiveDataset,
+    setPersistedDatasets,
+  ]);
 
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+      <AppToast />
+      <AppConfirmDialog />
       <Dashboard>
         <ViewRenderer />
       </Dashboard>

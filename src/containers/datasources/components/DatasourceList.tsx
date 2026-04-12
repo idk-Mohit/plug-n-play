@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useState } from "react";
 import { Database, Fullscreen } from "lucide-react";
-import { persistedDatasetsAtom } from "@/state/data/dataset";
+import { activeDatasetAtom, persistedDatasetsAtom } from "@/state/data/dataset";
 import { useAtom, useSetAtom } from "jotai";
 import {
   Dialog,
@@ -20,6 +20,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { DataTable } from "@/components/table/SimpleTable";
 import IconButton from "@/components/IconButton";
 import type { AnyRecord, uuid } from "@/types/data.types";
@@ -37,11 +40,12 @@ import {
  * DatasetList
  *
  * Displays a list of datasets with expandable previews, a table view modal,
- * and a delete confirmation alert dialog.
+ * rename dialog, and a delete confirmation alert dialog.
  */
 export function DatasourceList() {
   const setView = useSetAtom(activeViewAtom);
   const [datasets, setDatasets] = useAtom(persistedDatasetsAtom);
+  const setActiveDataset = useSetAtom(activeDatasetAtom);
   // Which dataset row is expanded
   const [expandedDataset, setExpandedDataset] = useState<string | null>(null);
   // Table view dialog visibility
@@ -52,6 +56,8 @@ export function DatasourceList() {
     id: uuid;
   } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [renameTargetId, setRenameTargetId] = useState<uuid | null>(null);
+  const [renameDraft, setRenameDraft] = useState("");
 
   /** Format ISO string with the shared formatter. */
   const formatDate = useCallback(
@@ -92,6 +98,37 @@ export function DatasourceList() {
   const askDelete = useCallback((id: uuid) => {
     setDeleteDataSet({ show: true, id });
   }, []);
+
+  /** Open rename dialog with current name. */
+  const askRename = useCallback(
+    (id: uuid) => {
+      const ds = datasets.find((d) => d.id === id);
+      if (!ds) return;
+      setRenameTargetId(id);
+      setRenameDraft(ds.name);
+    },
+    [datasets],
+  );
+
+  const commitRename = useCallback(() => {
+    if (!renameTargetId) return;
+    const trimmed = renameDraft.trim();
+    if (!trimmed) return;
+    setDatasets((prev) =>
+      prev.map((d) =>
+        d.id === renameTargetId ? { ...d, name: trimmed } : d,
+      ),
+    );
+    setActiveDataset((prev) =>
+      prev?.id === renameTargetId ? { ...prev, name: trimmed } : prev,
+    );
+    setRenameTargetId(null);
+  }, [
+    renameTargetId,
+    renameDraft,
+    setDatasets,
+    setActiveDataset,
+  ]);
 
   /** Perform delete; close dialog on completion. */
   const deleteDataSetHandler = useCallback(
@@ -146,6 +183,7 @@ export function DatasourceList() {
                     onToggle={() =>
                       setExpandedDataset(isExpanded ? null : dataset.id)
                     }
+                    onAskRename={() => askRename(dataset.id)}
                     onAskDelete={() => askDelete(dataset.id)}
                     formatDate={formatDate}
                     onShowGrid={openGrid}
@@ -238,6 +276,62 @@ export function DatasourceList() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog
+        open={renameTargetId !== null}
+        onOpenChange={(open) => {
+          if (!open) setRenameTargetId(null);
+        }}
+      >
+        <DialogContent className="gap-4 sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-semibold tracking-tight">
+              Rename dataset
+            </DialogTitle>
+            <DialogDescription className="text-[13px] leading-snug">
+              Update the display name. The dataset id and stored data are
+              unchanged.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="dataset-rename" className="text-xs">
+              Name
+            </Label>
+            <Input
+              id="dataset-rename"
+              value={renameDraft}
+              onChange={(e) => setRenameDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  commitRename();
+                }
+              }}
+              className="h-8 text-xs"
+              autoFocus
+              maxLength={120}
+            />
+          </div>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setRenameTargetId(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              disabled={!renameDraft.trim()}
+              onClick={() => commitRename()}
+            >
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Render the JSON preview string once, next to the list, to avoid heavy work inside each item */}
       {selectedDataset ? (

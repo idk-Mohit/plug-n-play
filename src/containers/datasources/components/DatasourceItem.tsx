@@ -31,6 +31,7 @@ const DatasourceItem = memo(function DatasetItem({
   dataset,
   isExpanded,
   onToggle,
+  onAskRename,
   onAskDelete,
   formatDate,
   onShowGrid,
@@ -39,6 +40,7 @@ const DatasourceItem = memo(function DatasetItem({
   dataset: DatasetMeta;
   isExpanded: boolean;
   onToggle: () => void;
+  onAskRename: () => void;
   onAskDelete: () => void;
   formatDate: (iso: string) => string;
   onShowGrid: (e: React.MouseEvent) => void;
@@ -106,9 +108,10 @@ const DatasourceItem = memo(function DatasetItem({
                   size="lg"
                   iconSize={16}
                   variant="ghost"
+                  aria-label="Rename dataset"
                   onClick={(e) => {
                     e.stopPropagation();
-                    onAskDelete();
+                    onAskRename();
                   }}
                 />
                 <IconButton
@@ -116,6 +119,7 @@ const DatasourceItem = memo(function DatasetItem({
                   size="lg"
                   variant="ghost"
                   iconSize={16}
+                  aria-label="Delete dataset"
                   iconClassName="text-destructive hover:text-destructive hover:bg-destructive/10"
                   onClick={(e) => {
                     e.stopPropagation();

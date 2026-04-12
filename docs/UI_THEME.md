@@ -120,6 +120,7 @@ Pattern used in `FormWrapper` + chart settings:
 | Field rendering (dense) | `src/components/form-wrapper/FieldRenderer.tsx` |
 | Section config + icons | `src/components/form-wrapper/configs/chart-settings.config.ts` |
 | `Field` primitive | `src/components/ui/field.tsx` |
+| Global toast / confirm modal | [`docs/UI_OVERLAYS.md`](./UI_OVERLAYS.md) — `AppToast`, `AppConfirmDialog`, `toastAtom`, `confirmDialogAtom` |
 
 ---
 
