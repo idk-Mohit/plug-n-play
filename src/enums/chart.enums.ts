@@ -10,7 +10,7 @@ export const ChartType = {
   LINE: "line",
   AREA: "area",
   SCATTER: "scatter",
-  /** Reserved for the upcoming bar implementation; renderer uses cartesian axes. */
+  /** Vertical bars on a band X scale (gallery + cartesian paint path). */
   BAR: "bar",
 } as const;
 

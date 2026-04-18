@@ -25,6 +25,8 @@ export interface CartesianChartProps {
   height?: number;
   type: ChartType;
   gridType?: GridType;
+  /** Gallery-style preview: no animation/tooltip; axes/grid from props + settings; not hidden during sidebar animation. */
+  preview?: boolean;
 }
 
 const CartesianChart = ({
@@ -33,6 +35,7 @@ const CartesianChart = ({
   height = 300,
   type = ChartTypeConst.LINE,
   gridType = "both",
+  preview = false,
 }: CartesianChartProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
@@ -55,6 +58,7 @@ const CartesianChart = ({
     data,
     type,
     gridType,
+    preview,
     chartSettings,
     renderTrigger,
     lastRef,
@@ -68,8 +72,8 @@ const CartesianChart = ({
         height: `${height}px`,
         overflow: "hidden",
       }}
-      className="chart"
-      data-hidden={isTransitioning}
+      className={preview ? "chart text-foreground" : "chart"}
+      data-hidden={preview ? false : isTransitioning}
     />
   );
 };
