@@ -30,6 +30,10 @@ interface DataTableProps<TData extends AnyRecord, TValue = unknown> {
   maxPreviewLen?: number;
   height?: number | string;
   loading?: boolean;
+  /** Fire when user scrolls near the bottom (e.g. load next page). */
+  onScrollNearEnd?: () => void;
+  /** Distance from bottom (px) to treat as "near end". Default 160. */
+  nearEndThresholdPx?: number;
 }
 
 const isPrimitive = (v: unknown) =>
@@ -85,6 +89,8 @@ export function DataTable<TData extends AnyRecord, TValue = unknown>({
   maxPreviewLen = 120,
   height = 400,
   loading = false,
+  onScrollNearEnd,
+  nearEndThresholdPx = 160,
 }: DataTableProps<TData, TValue>) {
   const columns = useMemo<ColumnDef<TData, TValue>[]>(() => {
     if (columnsProp && columnsProp.length) return columnsProp;
@@ -127,6 +133,23 @@ export function DataTable<TData extends AnyRecord, TValue = unknown>({
 
   // Virtualization
   const parentRef = useRef<HTMLDivElement | null>(null);
+  const nearEndLockRef = useRef(false);
+
+  const onScroll = () => {
+    if (!onScrollNearEnd || loading) return;
+    const el = parentRef.current;
+    if (!el) return;
+    const remaining = el.scrollHeight - el.scrollTop - el.clientHeight;
+    if (remaining < nearEndThresholdPx) {
+      if (nearEndLockRef.current) return;
+      nearEndLockRef.current = true;
+      onScrollNearEnd();
+      window.setTimeout(() => {
+        nearEndLockRef.current = false;
+      }, 400);
+    }
+  };
+
   const rowVirtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => parentRef.current,
@@ -147,6 +170,7 @@ export function DataTable<TData extends AnyRecord, TValue = unknown>({
         ref={parentRef}
         className="relative overflow-auto"
         style={{ height }}
+        onScroll={onScrollNearEnd ? onScroll : undefined}
       >
         {/* IMPORTANT: real table, not grid; fixed layout; allow horizontal scroll */}
         <Table className="min-w-max table-fixed">

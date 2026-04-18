@@ -93,8 +93,8 @@ export function useCartesianChartPaint({
     const showAxes = chartSettings.showAxes;
     const margin = preview
       ? showAxes
-        ? { top: 8, right: 8, bottom: 36, left: 30 }
-        : { top: 8, right: 8, bottom: 8, left: 8 }
+        ? { top: 8, right: 20, bottom: 36, left: 30 }
+        : { top: 8, right: 12, bottom: 8, left: 8 }
       : { top: 20, right: 30, bottom: 30, left: 40 };
 
     const effectiveGridType = gridType;
