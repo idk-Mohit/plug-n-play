@@ -31,5 +31,5 @@ export const listDatasets = () => {
 export const metaDataFromDatasetId = (id: uuid): DatasetMeta | null => {
   const datasources = LocalStoreUtils.getDatasources();
   if (!datasources) return null;
-  return datasources.find((x) => String(x.id) === String(id));
+  return datasources.find((x) => String(x.id) === String(id)) ?? null;
 };

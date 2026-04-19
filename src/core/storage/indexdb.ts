@@ -3,6 +3,11 @@ import { openDB } from "idb";
 const DB_NAME = "app-datasets";
 const STORE = "datasets";
 
+/** Keys persisted under `dataset:<uuid>` in the object store. */
+export function isDatasetObjectStoreKey(key: unknown): key is string {
+  return typeof key === "string" && key.startsWith("dataset:");
+}
+
 export async function getDb() {
   return openDB(DB_NAME, 1, {
     upgrade(db) {
@@ -32,7 +37,5 @@ export async function idbDelete(key: string) {
 export async function idbListDatasetKeys(): Promise<string[]> {
   const db = await getDb();
   const keys = await db.getAllKeys(STORE);
-  return keys.filter(
-    (k): k is string => typeof k === "string" && k.startsWith("dataset:"),
-  );
+  return keys.filter(isDatasetObjectStoreKey);
 }

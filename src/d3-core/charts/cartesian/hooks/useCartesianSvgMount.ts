@@ -36,7 +36,19 @@ export function useCartesianSvgMount(
 
     observer.observe(container);
 
+    // After layout, ensure paint runs once even if ResizeObserver debounce delays the first bump.
+    let cancelled = false;
+    let raf2: number | undefined;
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => {
+        if (!cancelled) setRenderTrigger((n) => n + 1);
+      });
+    });
+
     return () => {
+      cancelled = true;
+      cancelAnimationFrame(raf1);
+      if (raf2 !== undefined) cancelAnimationFrame(raf2);
       observer.disconnect();
       d3.select(container).select("svg").remove();
     };
