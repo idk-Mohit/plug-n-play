@@ -18,6 +18,7 @@ import {
   useCartesianSvgMount,
   type CartesianLastPaint,
 } from "./hooks";
+import { useCartesianViewportInteraction } from "./hooks/useCartesianViewportInteraction";
 
 export interface CartesianChartProps {
   id: string;
@@ -25,6 +26,10 @@ export interface CartesianChartProps {
   height?: number;
   type: ChartType;
   gridType?: GridType;
+  /** Gallery-style preview: no animation/tooltip; axes/grid from props + settings; not hidden during sidebar animation. */
+  preview?: boolean;
+  /** When false, wheel/pan viewport updates are disabled (e.g. built-in sample series). */
+  interactionEnabled?: boolean;
 }
 
 const CartesianChart = ({
@@ -33,6 +38,8 @@ const CartesianChart = ({
   height = 300,
   type = ChartTypeConst.LINE,
   gridType = "both",
+  preview = false,
+  interactionEnabled = true,
 }: CartesianChartProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
@@ -48,6 +55,14 @@ const CartesianChart = ({
     groupRef,
   );
 
+  useCartesianViewportInteraction({
+    containerRef,
+    chartId: id,
+    preview,
+    interaction: chartSettings.interaction,
+    enabled: interactionEnabled,
+  });
+
   useCartesianChartPaint({
     containerRef,
     svgRef,
@@ -55,6 +70,7 @@ const CartesianChart = ({
     data,
     type,
     gridType,
+    preview,
     chartSettings,
     renderTrigger,
     lastRef,
@@ -68,8 +84,8 @@ const CartesianChart = ({
         height: `${height}px`,
         overflow: "hidden",
       }}
-      className="chart"
-      data-hidden={isTransitioning}
+      className={preview ? "chart text-foreground" : "chart"}
+      data-hidden={preview ? false : isTransitioning}
     />
   );
 };

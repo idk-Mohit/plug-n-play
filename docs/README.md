@@ -1,17 +1,20 @@
 # Technical documentation
 
-This folder holds **authoritative** technical docs for Plug & Play. **Canonical architecture:** [`ARCHITECTURE.md`](ARCHITECTURE.md).
+This folder holds **authoritative** technical docs for Plug & Play. **Canonical architecture:** `[ARCHITECTURE.md](ARCHITECTURE.md)`.
 
 ## Documents in this repo
 
-| Document | Purpose |
-|----------|---------|
-| [`ARCHITECTURE.md`](ARCHITECTURE.md) | System design, layers, scalability |
-| [`DATA_FLOW.md`](DATA_FLOW.md) | How data moves from sources to charts |
-| [`ENGINE_PROTOCOL.md`](ENGINE_PROTOCOL.md) | RPC / worker message shapes |
-| [`ENGINEERING_STANDARDS.md`](ENGINEERING_STANDARDS.md) | How we build (lint, perf, UI) |
-| [`GIT_WORKTREES.md`](GIT_WORKTREES.md) | Parallel branches: `git worktree` + `pnpm worktree:add` |
-| [`UI_THEME.md`](UI_THEME.md) | Agent-facing UI theme: shadcn patterns, typography, dense panels (chart drawer reference) |
+
+| Document                                                                       | Purpose                                                                                   |
+| ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
+| `[ARCHITECTURE.md](ARCHITECTURE.md)`                                           | System design, layers, scalability                                                        |
+| `[DATA_FLOW.md](DATA_FLOW.md)`                                                 | How data moves from sources to charts                                                     |
+| `[ENGINE_PROTOCOL.md](ENGINE_PROTOCOL.md)`                                     | RPC / worker message shapes                                                               |
+| `[ENGINEERING_STANDARDS.md](ENGINEERING_STANDARDS.md)`                         | How we build (lint, perf, UI)                                                             |
+| `[GIT_WORKTREES.md](GIT_WORKTREES.md)`                                         | Parallel branches: `git worktree` + `pnpm worktree:add`                                   |
+| `[UI_THEME.md](UI_THEME.md)`                                                   | Agent-facing UI theme: shadcn patterns, typography, dense panels (chart drawer reference) |
+| `[design/memory-bounded-data-source.md](design/memory-bounded-data-source.md)` | Spec: per-viz sliding-window `DataSource` for paged tables (binding model, `getRow` API)  |
+
 
 ## Planned / not yet in tree
 

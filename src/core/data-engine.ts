@@ -1,37 +1,24 @@
-export interface DataEngine {
-  saveDataset(datasetId: string, data: unknown): Promise<void>;
-  getDataset(datasetId: string): Promise<unknown>;
-  deleteDataset(datasetId: string): Promise<void>;
-  getDatasetPreview(datasetId: string, limit?: number): Promise<unknown[]>;
-}
-
-// path: src/core/data-engine.ts
-import { idbSave, idbGet, idbDelete } from "./storage/indexdb";
+import { getEngineRpc } from "@/core/rpc/engineSingleton";
 import { metaDataFromDatasetId } from "./storage/localStorage";
 
 type uuid = string;
 
 export const dataEngine = {
-  // local-storage
   getDatasetMetaById(id: uuid) {
     return metaDataFromDatasetId(id);
   },
 
-  // idb
   async saveDataset(id: uuid, data: unknown) {
-    await idbSave(`dataset:${id}`, data);
-  },
-
-  async getDataset(id: uuid) {
-    return (await idbGet(`dataset:${id}`)) ?? [];
+    await getEngineRpc().call("Data", "save", [{ datasetId: id, data }]);
   },
 
   async deleteDataset(id: uuid) {
-    await idbDelete(`dataset:${id}`);
+    await getEngineRpc().call("Data", "deleteDataset", [id]);
   },
 
   async getDatasetPreview(id: uuid, limit = 50) {
-    const full = (await idbGet<unknown[]>(`dataset:${id}`)) ?? [];
-    return Array.isArray(full) ? full.slice(0, limit) : [full];
+    return getEngineRpc().call<unknown[]>("Data", "getPreview", [
+      { datasetId: id, limit },
+    ]);
   },
 };

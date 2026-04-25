@@ -1,4 +1,6 @@
 import { V, type RpcRequest } from "@/core/rpc/config/protocol";
+import { ok, err } from "@/engine/rpcResponse";
+import * as dataService from "@/engine/services/data.service";
 
 /**
  * ------------------------------------------------------------
@@ -15,34 +17,6 @@ import { V, type RpcRequest } from "@/core/rpc/config/protocol";
  * ------------------------------------------------------------
  */
 
-/**
- * @typedef {Object} RpcRequest
- * @property {number} v - Protocol version
- * @property {string} id - Unique request ID
- * @property {string} svc - Service name (e.g., "System")
- * @property {string} method - Method name (e.g., "ping")
- * @property {Array<any>} [args] - Optional arguments
- */
-
-/**
- * @typedef {Object} RpcResponse
- * @property {string} id
- * @property {boolean} ok
- * @property {any} [result]
- * @property {{ code: string, message: string }} [error]
- */
-
-// ---- Protocol constants & helpers ----
-
-// Create a success response
-export function ok<T>(id: string, result: T) {
-  return { id, ok: true as const, result };
-}
-
-export function err(id: string, code: string, message: string) {
-  return { id, ok: false as const, error: { code, message } };
-}
-
 // ---- Handlers ----
 // Each handler gets a validated RpcRequest and must return a response.
 
@@ -53,6 +27,17 @@ const routes: Record<string, (req: RpcRequest) => Promise<unknown>> = {
   "System.pong": async (req: RpcRequest) => {
     return ok(req.id, { ping: true, t: Date.now() });
   },
+  "Data.getMeta": dataService.getMeta,
+  "Data.getPreview": dataService.getPreview,
+  "Data.getRange": dataService.getRange,
+  "Data.getPage": dataService.getPage,
+  "Data.getAggregated": dataService.getAggregated,
+  "Data.save": dataService.save,
+  "Data.deleteDataset": dataService.deleteDataset,
+  "Data.getManifest": dataService.getManifest,
+  "Data.saveManifest": dataService.saveManifest,
+  "Data.listDatasetKeys": dataService.listDatasetKeys,
+  "Data.clearAll": dataService.clearAll,
 };
 
 // ---- Validation helpers ----

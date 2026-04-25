@@ -2,21 +2,28 @@ import { useAtom, useAtomValue } from "jotai";
 import { chartSettingsAtomFamily } from "@/state/ui/chart-setting";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import CartesianChart from "@/d3-core/charts/cartesian/CartesianChart";
-import type { timeseriesdata } from "@/types/data.types";
 import { sidebarTransitionAtom } from "@/state/ui/layout";
 import { Loader } from "@/components/loader";
 import { Separator } from "@/components/ui/separator";
 import { ChartQuickSettings } from "./settings/QuickSetting";
 import { useEffect } from "react";
+import { useDatasetSlice } from "@/hooks/useDatasetSlice";
+import { activeDatasetAtom } from "@/state/data/dataset";
+import { isDefaultSampleDatasetId } from "@/state/data/defaultSampleDataset";
 
 interface ChartPanelProps {
   id: string;
   title: string;
-  data: timeseriesdata[];
 }
 
-export function ChartPanel({ id, title, data }: ChartPanelProps) {
+export function ChartPanel({ id, title }: ChartPanelProps) {
   const isTransitioning = useAtomValue(sidebarTransitionAtom);
+  const active = useAtomValue(activeDatasetAtom);
+  const canViewportInteract = !!(
+    active && !isDefaultSampleDatasetId(active.id)
+  );
+
+  const { data, loading: dataLoading } = useDatasetSlice(id);
 
   const [chartSettings, setChartSettings] = useAtom(
     chartSettingsAtomFamily(id)
@@ -49,13 +56,20 @@ export function ChartPanel({ id, title, data }: ChartPanelProps) {
             <Loader key="chart-sidebar-transition" type="random" size={56} />
           </div>
         ) : null}
-        <CartesianChart
-          id={id}
-          data={data}
-          height={200}
-          type={chartSettings.type}
-          gridType={chartSettings.grid}
-        />
+        {dataLoading && data.length === 0 ? (
+          <div className="flex min-h-[200px] items-center justify-center">
+            <Loader type="random" size={48} />
+          </div>
+        ) : (
+          <CartesianChart
+            id={id}
+            data={data}
+            height={200}
+            type={chartSettings.type}
+            gridType={chartSettings.grid}
+            interactionEnabled={canViewportInteract}
+          />
+        )}
       </CardContent>
     </Card>
   );

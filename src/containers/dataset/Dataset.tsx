@@ -1,17 +1,16 @@
-import { dataEngine } from "@/core/data-engine";
 import { persistedDatasetsAtom } from "@/state/data/dataset";
 import { useAtomValue } from "jotai";
-import { type AnyRecord } from "@/types/data.types";
 import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/header/PageHeader";
 import { DataTable } from "@/components/table/SimpleTable";
+import { useDataSource } from "@/hooks/useDataSource";
 
 export default function Dataset() {
-  const [rows, setRows] = useState<AnyRecord[] | null>(null);
   const allDatasets = useAtomValue(persistedDatasetsAtom);
+  const [datasetId, setDatasetId] = useState<string | null>(null);
 
   /** Parse datasetId from hash */
-  const getDatasetId = (): string | null => {
+  const readDatasetIdFromHash = (): string | null => {
     const hash = window.location.hash.slice(1);
     const queryString = hash.split("?")[1];
     if (!queryString) return null;
@@ -20,19 +19,23 @@ export default function Dataset() {
   };
 
   useEffect(() => {
-    const datasetId = getDatasetId();
-    if (!datasetId) return;
+    const sync = () => setDatasetId(readDatasetIdFromHash());
+    sync();
+    window.addEventListener("hashchange", sync);
+    return () => window.removeEventListener("hashchange", sync);
+  }, []);
 
-    const meta = allDatasets.find((d) => d.id === datasetId);
-    if (!meta) return;
+  const meta = datasetId
+    ? allDatasets.find((d) => d.id === datasetId)
+    : undefined;
 
-    (async () => {
-      const data = await dataEngine.getDataset(datasetId);
-      setRows(Array.isArray(data) ? data : [data]);
-    })();
-  }, [allDatasets]);
+  const vizId = `dataset-table:${datasetId}`;
+  const { getRow, total, loading, revision } = useDataSource(vizId, {
+    datasetId,
+    policy: { pageSize: 50, bandPages: 10 },
+  });
 
-  if (!rows)
+  if (!datasetId)
     return (
       <>
         <PageHeader
@@ -43,15 +46,11 @@ export default function Dataset() {
       </>
     );
 
-  // meta info for header
-  const datasetId = getDatasetId();
-  const meta = allDatasets.find((d) => d.id === datasetId);
-
   return (
     <div className="h-fit bg-background">
       <PageHeader
-        title={meta?.name ?? "Dataset Preview"}
-        subtitle={`Records: ${meta?.records ?? rows.length} | Size: ${
+        title={meta?.name ?? `Dataset ${datasetId.slice(0, 8)}…`}
+        subtitle={`Records: ${meta?.records ?? total} | Size: ${
           meta?.size ?? "-"
         }`}
         badge="Plug & Play"
@@ -59,9 +58,10 @@ export default function Dataset() {
 
       <main className="mx-auto pt-6">
         <DataTable
+          key={vizId}
           height={"calc(100dvh - 340px)"}
-          columns={[]} // you can plug real columns later
-          data={rows as AnyRecord[]}
+          dataSource={{ getRow, total, revision }}
+          loading={loading}
         />
       </main>
     </div>
