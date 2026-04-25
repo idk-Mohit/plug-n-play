@@ -10,7 +10,22 @@ import {
 } from "@/state/data/defaultSampleDataset";
 import { useAtomValue } from "jotai";
 import { generateSeries } from "@/compute";
-import { useDatasetPage } from "@/hooks/useDatasetPage";
+import { useDataSource } from "@/hooks/useDataSource";
+
+function HomeTableFromSource({ uploadId }: { uploadId: string }) {
+  const vizId = `home-table:${uploadId}`;
+  const { getRow, total, loading, revision } = useDataSource(vizId, {
+    datasetId: uploadId,
+    policy: { pageSize: 50, bandPages: 10 },
+  });
+  return (
+    <DataTable
+      key={vizId}
+      loading={loading}
+      dataSource={{ getRow, total, revision }}
+    />
+  );
+}
 
 const Home = () => {
   const activeDataSet = useAtomValue(activeDatasetAtom);
@@ -20,12 +35,6 @@ const Home = () => {
     activeDataSet && !isDefaultSampleDatasetId(activeDataSet.id)
       ? activeDataSet.id
       : null;
-
-  const {
-    rows: pagedRows,
-    loading: tableLoading,
-    loadMore,
-  } = useDatasetPage(uploadId, 50);
 
   const [sampleRows, setSampleRows] = useState<AnyRecord[]>([]);
   const [sampleTableLoading, setSampleTableLoading] = useState(false);
@@ -49,9 +58,6 @@ const Home = () => {
     };
   }, [uploadId, dataCount]);
 
-  const tableData = uploadId ? pagedRows : sampleRows;
-  const loading = uploadId ? tableLoading : sampleTableLoading;
-
   return (
     <>
       <div className="flex flex-1 gap-4 flex-wrap">
@@ -65,11 +71,11 @@ const Home = () => {
               : `Sample time series (${dataCount})`
           }
         />
-        <DataTable
-          loading={loading}
-          data={tableData}
-          onScrollNearEnd={uploadId ? () => void loadMore() : undefined}
-        />
+        {uploadId ? (
+          <HomeTableFromSource uploadId={uploadId} />
+        ) : (
+          <DataTable loading={sampleTableLoading} data={sampleRows} />
+        )}
       </div>
       <ChartFullSettingsDrawer chartId="chart-1" />
     </>

@@ -1,10 +1,9 @@
 import { persistedDatasetsAtom } from "@/state/data/dataset";
 import { useAtomValue } from "jotai";
-import { type AnyRecord } from "@/types/data.types";
 import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/header/PageHeader";
 import { DataTable } from "@/components/table/SimpleTable";
-import { useDatasetPage } from "@/hooks/useDatasetPage";
+import { useDataSource } from "@/hooks/useDataSource";
 
 export default function Dataset() {
   const allDatasets = useAtomValue(persistedDatasetsAtom);
@@ -30,7 +29,11 @@ export default function Dataset() {
     ? allDatasets.find((d) => d.id === datasetId)
     : undefined;
 
-  const { rows, loading, loadMore, total } = useDatasetPage(datasetId, 50);
+  const vizId = `dataset-table:${datasetId}`;
+  const { getRow, total, loading, revision } = useDataSource(vizId, {
+    datasetId,
+    policy: { pageSize: 50, bandPages: 10 },
+  });
 
   if (!datasetId)
     return (
@@ -55,11 +58,10 @@ export default function Dataset() {
 
       <main className="mx-auto pt-6">
         <DataTable
+          key={vizId}
           height={"calc(100dvh - 340px)"}
-          columns={[]} // you can plug real columns later
-          data={rows as AnyRecord[]}
+          dataSource={{ getRow, total, revision }}
           loading={loading}
-          onScrollNearEnd={() => void loadMore()}
         />
       </main>
     </div>

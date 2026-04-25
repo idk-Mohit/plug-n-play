@@ -4,14 +4,16 @@ This document explains how data flows through the Plug & Play Dashboard system i
 
 ## Implementation status (read this first)
 
-| Area | Status |
-|------|--------|
-| Default sample data via worker | **Implemented** — `generate_series` in [`src/compute/workers/dataWorker.ts`](../src/compute/workers/dataWorker.ts), called via [`src/compute/index.ts`](../src/compute/index.ts) |
-| JSON paste → IndexedDB | **Implemented** — [`src/containers/datasources/components/JsonUpload.tsx`](../src/containers/datasources/components/JsonUpload.tsx) + [`src/core/data-engine.ts`](../src/core/data-engine.ts) |
-| File upload (JSON/CSV) → IndexedDB | **Implemented** — same persistence path as JSON via `dataEngine` |
-| Dataset **metadata** list (names, previews, ids for the UI) | **localStorage** key `datasources` + **IndexedDB** backup key `datasources-manifest` — see [`src/state/data/dataset-storage.ts`](../src/state/data/dataset-storage.ts). Large previews can exceed the ~5MB localStorage quota; the full dataset always remains in IDB under `dataset:${id}`. |
-| Real-time / WebSocket / export flows | **Not implemented** — sections below are **design targets** |
-| Service worker caching | **Not implemented** |
+
+| Area                                                        | Status                                                                                                                                                                                                                                                                                       |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Default sample data via worker                              | **Implemented** — `generate_series` in `[src/compute/workers/dataWorker.ts](../src/compute/workers/dataWorker.ts)`, called via `[src/compute/index.ts](../src/compute/index.ts)`                                                                                                             |
+| JSON paste → IndexedDB                                      | **Implemented** — `[src/containers/datasources/components/JsonUpload.tsx](../src/containers/datasources/components/JsonUpload.tsx)` + `[src/core/data-engine.ts](../src/core/data-engine.ts)`                                                                                                |
+| File upload (JSON/CSV) → IndexedDB                          | **Implemented** — same persistence path as JSON via `dataEngine`                                                                                                                                                                                                                             |
+| Dataset **metadata** list (names, previews, ids for the UI) | **localStorage** key `datasources` + **IndexedDB** backup key `datasources-manifest` — see `[src/state/data/dataset-storage.ts](../src/state/data/dataset-storage.ts)`. Large previews can exceed the ~5MB localStorage quota; the full dataset always remains in IDB under `dataset:${id}`. |
+| Real-time / WebSocket / export flows                        | **Not implemented** — sections below are **design targets**                                                                                                                                                                                                                                  |
+| Service worker caching                                      | **Not implemented**                                                                                                                                                                                                                                                                          |
+
 
 Sections marked as future behavior describe intent, not guaranteed runtime.
 
@@ -92,29 +94,35 @@ graph TB
     Derived --> Export
 ```
 
+
+
 ---
 
 ## 📊 Data Sources
 
 ### 1. WASM Data Generation
+
 - **Purpose**: Default/sample data generation
 - **Performance**: High performance using WebAssembly
 - **Use Case**: Initial app load, demonstrations, testing
 - **Data Pattern**: Sine wave, random, mathematical functions
 
 ### 2. User Uploads
+
 - **Purpose**: User-provided datasets
 - **Formats**: JSON, CSV, XML
 - **Storage**: IndexedDB for large files
 - **Processing**: Validation, transformation, indexing
 
 ### 3. External APIs
+
 - **Purpose**: Real-time data from external services
 - **Protocols**: REST, WebSocket, GraphQL
 - **Authentication**: API keys, OAuth tokens
 - **Caching**: Local cache for offline access
 
 ### 4. Real-time Streams
+
 - **Purpose**: Live data feeds
 - **Protocols**: WebSocket, Server-Sent Events
 - **Update Frequency**: Sub-second to minutes
@@ -146,15 +154,19 @@ sequenceDiagram
     State-->>App: Re-render with chart
 ```
 
+
+
 ### Detailed Steps
 
 #### 1. App Initialization
+
 ```typescript
 // App.tsx checks for active dataset
 const activeDataset = useAtomValue(activeDatasetAtom);
 ```
 
 #### 2. Home Container Logic
+
 ```typescript
 // Home.tsx - useEffect hook
 useEffect(() => {
@@ -169,6 +181,7 @@ useEffect(() => {
 ```
 
 #### 3. Worker Communication
+
 ```typescript
 // Worker request
 worker.postMessage({ 
@@ -186,6 +199,7 @@ worker.onmessage = (e) => {
 ```
 
 #### 4. Data Generation
+
 ```typescript
 // Worker generates data
 function generateSineWaveJS(count: number): timeseriesdata[] {
@@ -201,18 +215,21 @@ function generateSineWaveJS(count: number): timeseriesdata[] {
 ```
 
 #### 5. State Update
+
 ```typescript
 // State updated via Jotai
 const [data, setData] = useState<timeseriesdata[]>([]);
 ```
 
 #### 6. Chart Rendering
+
 ```typescript
 // ChartPanel receives data and renders
 <ChartPanel data={data} id="chart-1" title="Default Sample Data" />
 ```
 
 ### Data Characteristics
+
 - **Source**: WASM/JavaScript generation
 - **Count**: 100 data points
 - **Pattern**: Sine wave with noise
@@ -247,9 +264,12 @@ sequenceDiagram
     Home->>Chart: Render with user data
 ```
 
+
+
 ### Detailed Steps
 
 #### 1. File Selection
+
 ```typescript
 // FileUpload.tsx
 const handleFileUpload = async (file: File) => {
@@ -266,6 +286,7 @@ const handleFileUpload = async (file: File) => {
 ```
 
 #### 2. Dataset Creation
+
 ```typescript
 // Dataset metadata
 const dataset: DatasetMeta = {
@@ -280,6 +301,7 @@ const dataset: DatasetMeta = {
 ```
 
 #### 3. Storage Persistence
+
 ```typescript
 // IndexedDB storage
 await idbSave('datasets', dataset.id, {
@@ -289,6 +311,7 @@ await idbSave('datasets', dataset.id, {
 ```
 
 #### 4. State Management
+
 ```typescript
 // Update Jotai atoms
 setPersistedDatasetsAtom(prev => [...prev, dataset]);
@@ -296,6 +319,7 @@ setActiveDatasetAtom(dataset);
 ```
 
 #### 5. Data Loading
+
 ```typescript
 // Home.tsx loads actual dataset
 const _data = await dataEngine.getDataset(activeDataSet.id);
@@ -303,6 +327,7 @@ setData(Array.isArray(_data) ? _data : [_data]);
 ```
 
 ### Data Characteristics
+
 - **Source**: User file upload
 - **Formats**: JSON, CSV
 - **Storage**: IndexedDB (persistent)
@@ -330,9 +355,12 @@ sequenceDiagram
     Chart->>User: Display updated chart
 ```
 
+
+
 ### Implementation Details
 
 #### 1. WebSocket Connection
+
 ```typescript
 // RealtimeWorker.ts
 const ws = new WebSocket('wss://api.example.com/data');
@@ -346,6 +374,7 @@ ws.onmessage = (event) => {
 ```
 
 #### 2. State Updates
+
 ```typescript
 // Batch updates for performance
 const batchUpdate = atom(null, async (get, set, updates) => {
@@ -356,6 +385,7 @@ const batchUpdate = atom(null, async (get, set, updates) => {
 ```
 
 #### 3. Chart Optimization
+
 ```typescript
 // Virtual rendering for large datasets
 const VirtualizedChart = ({ data }) => {
@@ -391,9 +421,12 @@ sequenceDiagram
     Export->>User: Trigger download
 ```
 
+
+
 ### Export Formats
 
 #### 1. CSV Export
+
 ```typescript
 const exportToCSV = (data: timeseriesdata[]) => {
   const headers = 'Timestamp,Value\n';
@@ -403,6 +436,7 @@ const exportToCSV = (data: timeseriesdata[]) => {
 ```
 
 #### 2. JSON Export
+
 ```typescript
 const exportToJSON = (data: timeseriesdata[]) => {
   return JSON.stringify(data, null, 2);
@@ -410,6 +444,7 @@ const exportToJSON = (data: timeseriesdata[]) => {
 ```
 
 #### 3. Excel Export
+
 ```typescript
 // Using Web Worker for large datasets
 worker.postMessage({
@@ -423,6 +458,7 @@ worker.postMessage({
 ## 🗄️ Storage Layer
 
 ### IndexedDB (Primary Storage)
+
 ```typescript
 // Large datasets and persistence
 interface IndexedDBSchema {
@@ -444,6 +480,7 @@ interface IndexedDBSchema {
 ```
 
 ### localStorage (Metadata)
+
 ```typescript
 // User preferences and small data
 localStorage.setItem('activeDataset', JSON.stringify(dataset));
@@ -451,6 +488,7 @@ localStorage.setItem('chartSettings', JSON.stringify(settings));
 ```
 
 ### Memory Cache (Performance)
+
 ```typescript
 // Frequently accessed data
 const memoryCache = new Map<string, {
@@ -504,6 +542,7 @@ const optimisticUpdate = atom(null, async (get, set, update) => {
 ## ⚠️ Error Handling
 
 ### Data Validation
+
 ```typescript
 const validateDataset = (data: unknown): ValidationResult => {
   if (!Array.isArray(data)) {
@@ -526,6 +565,7 @@ const validateDataset = (data: unknown): ValidationResult => {
 ```
 
 ### Error Recovery
+
 ```typescript
 const handleError = (error: Error, context: string) => {
   console.error(`Error in ${context}:`, error);
@@ -545,18 +585,21 @@ const handleError = (error: Error, context: string) => {
 ## ⚡ Performance Considerations
 
 ### Data Processing
+
 - **Workers**: Heavy processing in background threads
 - **Streaming**: Process large datasets in chunks
 - **Caching**: Cache computed results
 - **Virtualization**: Render only visible data
 
 ### Memory Management
+
 - **Lazy Loading**: Load data on demand
 - **Cleanup**: Remove unused datasets
 - **Monitoring**: Track memory usage
 - **Optimization**: Use efficient data structures
 
 ### Network Optimization
+
 - **Compression**: Compress large datasets
 - **Batching**: Group multiple requests
 - **Caching**: Cache API responses
@@ -566,12 +609,14 @@ const handleError = (error: Error, context: string) => {
 
 ## 🔄 Data Flow Summary
 
-| Scenario | Data Source | Processing | Storage | State | Presentation |
-|----------|-------------|-------------|---------|-------|--------------|
-| Default | WASM/JS | Worker generation | Memory | Temporary | Chart |
-| Upload | User file | Validation/Transform | IndexedDB | Persistent | Chart/Table |
-| Real-time | External API | Stream processing | Cache | Dynamic | Live Chart |
-| Export | Current state | Format conversion | Download | N/A | File |
+
+| Scenario  | Data Source   | Processing           | Storage   | State      | Presentation |
+| --------- | ------------- | -------------------- | --------- | ---------- | ------------ |
+| Default   | WASM/JS       | Worker generation    | Memory    | Temporary  | Chart        |
+| Upload    | User file     | Validation/Transform | IndexedDB | Persistent | Chart/Table  |
+| Real-time | External API  | Stream processing    | Cache     | Dynamic    | Live Chart   |
+| Export    | Current state | Format conversion    | Download  | N/A        | File         |
+
 
 ---
 

@@ -22,3 +22,9 @@ export const tableViewportAtomFamily = atomFamily((tableId: string) => {
   void tableId;
   return atom<TableViewport | null>(null);
 });
+
+/** Bumped when a table DataSource loads/evicts pages so consumers re-render. */
+export const dataSourceVersionAtomFamily = atomFamily((vizId: string) => {
+  void vizId;
+  return atom<number>(0);
+});
