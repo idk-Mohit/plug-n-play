@@ -15,14 +15,17 @@ interface DataTableColumnHeaderProps<TData, TValue>
   extends React.HTMLAttributes<HTMLDivElement> {
   column: Column<TData, TValue>;
   title: string;
+  /** When false, never show sort menu (e.g. memory-bounded paged tables). */
+  sortable?: boolean;
 }
 
 export function DataTableColumnHeader<TData, TValue>({
   column,
   title,
   className,
+  sortable = true,
 }: DataTableColumnHeaderProps<TData, TValue>) {
-  if (!column.getCanSort()) {
+  if (!sortable || !column.getCanSort()) {
     return <div className={cn(className)}>{title}</div>;
   }
 

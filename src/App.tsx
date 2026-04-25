@@ -7,7 +7,7 @@ import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { useSetAtom } from "jotai";
 import { useStore } from "jotai/react";
 import { useCallback, useEffect, useRef } from "react";
-import { idbGet, idbListDatasetKeys } from "@/core/storage/indexdb";
+import { getEngineRpc } from "@/core/rpc/engineSingleton";
 import {
   activeDatasetAtom,
   persistedDatasetsAtom,
@@ -16,7 +16,6 @@ import {
 import {
   clearAllIndexedDbDatasetStorage,
   countRecoverableDatasetIds,
-  DATASETS_MANIFEST_IDB_KEY,
   hasIndexedDbRecoverableDatasets,
   hydrateMissingPreviewsFromIdb,
   isPersistedDatasourcesListEmptyInLs,
@@ -57,8 +56,13 @@ function App() {
 
   const applyMergedAndHydrated = useCallback(
     async (cancelled: () => boolean) => {
-      const fromIdb = await idbGet<DatasetMeta[]>(DATASETS_MANIFEST_IDB_KEY);
-      const datasetKeys = await idbListDatasetKeys();
+      const rpc = getEngineRpc();
+      const fromIdb = await rpc.call<DatasetMeta[]>("Data", "getManifest", []);
+      const datasetKeys = await rpc.call<string[]>(
+        "Data",
+        "listDatasetKeys",
+        [],
+      );
       if (cancelled()) return;
       const prev = store.get(persistedDatasetsAtom);
       const merged = mergePersistedDatasetsWithIndexedDbSources(
@@ -77,8 +81,13 @@ function App() {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const fromIdb = await idbGet<DatasetMeta[]>(DATASETS_MANIFEST_IDB_KEY);
-      const datasetKeys = await idbListDatasetKeys();
+      const rpc = getEngineRpc();
+      const fromIdb = await rpc.call<DatasetMeta[]>("Data", "getManifest", []);
+      const datasetKeys = await rpc.call<string[]>(
+        "Data",
+        "listDatasetKeys",
+        [],
+      );
       if (cancelled) return;
 
       if (

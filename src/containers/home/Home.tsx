@@ -1,6 +1,6 @@
 import ChartPanel from "@/components/charts/ChartPanel";
 import { useEffect, useState } from "react";
-import type { AnyRecord, timeseriesdata } from "@/types/data.types";
+import type { AnyRecord } from "@/types/data.types";
 import { ChartFullSettingsDrawer } from "@/components/charts/settings/ChartFullSettingDrawer";
 import { DataTable } from "@/components/table/SimpleTable";
 import { activeDatasetAtom } from "@/state/data/dataset";
@@ -9,61 +9,59 @@ import {
   isDefaultSampleDatasetId,
 } from "@/state/data/defaultSampleDataset";
 import { useAtomValue } from "jotai";
-import { dataEngine } from "@/core/data-engine";
 import { generateSeries } from "@/compute";
+import { useDataSource } from "@/hooks/useDataSource";
+
+function HomeTableFromSource({ uploadId }: { uploadId: string }) {
+  const vizId = `home-table:${uploadId}`;
+  const { getRow, total, loading, revision } = useDataSource(vizId, {
+    datasetId: uploadId,
+    policy: { pageSize: 50, bandPages: 10 },
+  });
+  return (
+    <DataTable
+      key={vizId}
+      loading={loading}
+      dataSource={{ getRow, total, revision }}
+    />
+  );
+}
 
 const Home = () => {
-  const [loading, setLoading] = useState(true);
   const activeDataSet = useAtomValue(activeDatasetAtom);
-  const [data, setData] = useState<timeseriesdata[]>([]);
   const dataCount = DEFAULT_SAMPLE_POINT_COUNT;
 
+  const uploadId =
+    activeDataSet && !isDefaultSampleDatasetId(activeDataSet.id)
+      ? activeDataSet.id
+      : null;
+
+  const [sampleRows, setSampleRows] = useState<AnyRecord[]>([]);
+  const [sampleTableLoading, setSampleTableLoading] = useState(false);
+
   useEffect(() => {
-    const id = activeDataSet?.id;
-    const useUploaded =
-      id && !isDefaultSampleDatasetId(id);
-
-    if (useUploaded) {
-      void (async () => {
-        try {
-          const _data = await dataEngine.getDataset(id);
-          const formattedData = Array.isArray(_data) ? _data : [_data];
-          setData(formattedData as timeseriesdata[]);
-          setLoading(false);
-        } catch (error) {
-          setLoading(false);
-          console.error(error);
-        }
-      })();
-      return;
-    }
-
+    if (uploadId) return;
     let cancelled = false;
-    setLoading(true);
+    setSampleTableLoading(true);
     void generateSeries({ count: dataCount })
       .then(({ data: series }) => {
         if (!cancelled) {
-          setData(series);
-          setLoading(false);
+          setSampleRows(series.slice(0, 50) as unknown as AnyRecord[]);
         }
       })
-      .catch((error) => {
-        if (!cancelled) {
-          setLoading(false);
-          console.error(error);
-        }
+      .catch(console.error)
+      .finally(() => {
+        if (!cancelled) setSampleTableLoading(false);
       });
-
     return () => {
       cancelled = true;
     };
-  }, [activeDataSet, dataCount]);
+  }, [uploadId, dataCount]);
 
   return (
     <>
       <div className="flex flex-1 gap-4 flex-wrap">
         <ChartPanel
-          data={data}
           id="chart-1"
           title={
             activeDataSet
@@ -73,7 +71,11 @@ const Home = () => {
               : `Sample time series (${dataCount})`
           }
         />
-        <DataTable loading={loading} data={data as unknown as AnyRecord[]} />
+        {uploadId ? (
+          <HomeTableFromSource uploadId={uploadId} />
+        ) : (
+          <DataTable loading={sampleTableLoading} data={sampleRows} />
+        )}
       </div>
       <ChartFullSettingsDrawer chartId="chart-1" />
     </>

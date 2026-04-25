@@ -1,10 +1,5 @@
 import { createJSONStorage } from "jotai/utils";
-import {
-  idbDelete,
-  idbGet,
-  idbListDatasetKeys,
-  idbSave,
-} from "@/core/storage/indexdb";
+import { getEngineRpc } from "@/core/rpc/engineSingleton";
 import type { DatasetMeta } from "./dataset";
 import {
   createDefaultSampleDatasetMeta,
@@ -59,7 +54,7 @@ export function createPersistedDatasetsStorage() {
     ...base,
     setItem: (key: string, value: DatasetMeta[]) => {
       const slimmed = value.map(slimDatasetMetaForPersistence);
-      void idbSave(DATASETS_MANIFEST_IDB_KEY, slimmed);
+      void getEngineRpc().call("Data", "saveManifest", [slimmed]);
       try {
         base.setItem(key, slimmed);
       } catch (e) {
@@ -193,10 +188,9 @@ export function mergePersistedDatasetsWithIndexedDbSources(
   builtInSampleDatasetId: string,
 ): DatasetMeta[] {
   if (prev.length > 0 && (!fromIdbManifest || fromIdbManifest.length === 0)) {
-    void idbSave(
-      DATASETS_MANIFEST_IDB_KEY,
+    void getEngineRpc().call("Data", "saveManifest", [
       prev.map(slimDatasetMetaForPersistence),
-    );
+    ]);
   }
   const mergedManifest = mergeDatasetManifests(prev, fromIdbManifest ?? []);
   const withIdbRows = mergePlaceholderMetasForIdbDatasetKeys(
@@ -228,8 +222,9 @@ export async function hydrateMissingPreviewsFromIdb(
       out.push(m);
       continue;
     }
-    const full = (await idbGet<unknown[]>(`dataset:${m.id}`)) ?? [];
-    const raw = Array.isArray(full) ? full.slice(0, PREVIEW_MAX_ROWS) : [full];
+    const raw = await getEngineRpc().call<unknown[]>("Data", "getPreview", [
+      { datasetId: m.id, limit: PREVIEW_MAX_ROWS },
+    ]);
     out.push({ ...m, preview: clampPreview(raw) });
   }
   return out;
@@ -237,7 +232,5 @@ export async function hydrateMissingPreviewsFromIdb(
 
 /** Remove all `dataset:*` entries and the datasources manifest from IndexedDB. */
 export async function clearAllIndexedDbDatasetStorage(): Promise<void> {
-  const keys = await idbListDatasetKeys();
-  await Promise.all(keys.map((k) => idbDelete(k)));
-  await idbDelete(DATASETS_MANIFEST_IDB_KEY);
+  await getEngineRpc().call("Data", "clearAll", []);
 }

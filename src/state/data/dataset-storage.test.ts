@@ -3,20 +3,17 @@ import { describe, expect, it, vi } from "vitest";
 import { DEFAULT_SAMPLE_DATASET_ID } from "./defaultSampleDataset";
 import type { DatasetMeta } from "./dataset";
 
-const mockIdbSave = vi.hoisted(() => vi.fn(() => Promise.resolve()));
+const mockRpcCall = vi.hoisted(() =>
+  vi.fn(() => Promise.resolve(true)),
+);
 
-vi.mock("@/core/storage/indexdb", async (importOriginal) => {
-  const mod = await importOriginal<typeof import("@/core/storage/indexdb")>();
-  return {
-    ...mod,
-    idbSave: mockIdbSave,
-  };
-});
+vi.mock("@/core/rpc/engineSingleton", () => ({
+  getEngineRpc: () => ({ call: mockRpcCall }),
+}));
 
 import { stubLocalStorageForTests } from "@/test/local-storage-mock";
 
 import {
-  DATASETS_MANIFEST_IDB_KEY,
   PREVIEW_MAX_ROWS,
   countRecoverableDatasetIds,
   hasIndexedDbRecoverableDatasets,
@@ -168,7 +165,7 @@ describe("mergePersistedDatasetsWithIndexedDbSources", () => {
   });
 
   it("mirrors prev manifest to idb when idb manifest is empty", () => {
-    mockIdbSave.mockClear();
+    mockRpcCall.mockClear();
     const prev = [meta({ id: "u1", name: "One" })];
     mergePersistedDatasetsWithIndexedDbSources(
       prev,
@@ -176,8 +173,9 @@ describe("mergePersistedDatasetsWithIndexedDbSources", () => {
       [],
       DEFAULT_SAMPLE_DATASET_ID,
     );
-    expect(mockIdbSave).toHaveBeenCalledWith(
-      DATASETS_MANIFEST_IDB_KEY,
+    expect(mockRpcCall).toHaveBeenCalledWith(
+      "Data",
+      "saveManifest",
       expect.any(Array),
     );
   });
