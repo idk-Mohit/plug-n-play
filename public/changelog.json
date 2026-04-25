@@ -2,6 +2,45 @@
   "version": 1,
   "updates": [
     {
+      "id": "2026-04-25",
+      "date": "Apr 25, 2026",
+      "title": "Data engine, memory-bounded tables, and chart viewport",
+      "tags": ["Feature", "Fix", "Performance"],
+      "sections": [
+        {
+          "title": "Data engine & worker",
+          "items": [
+            "Engine worker exposes a `Data` RPC: paged `getPage`, range, aggregated time-series, preview, and manifest helpers, backed by IndexedDB.",
+            "Typed RPC contracts (`data-contract`) and a shared `MiniGrpc` client via `getEngineRpc()` / `engineSingleton`.",
+            "Aggregations in the worker: LTTB downsampling and time-bucket methods for large series.",
+            "Expanded `docs/DATA_FLOW.md` and a design note for the memory-bounded `DataSource` (sliding-window retention for tables)."
+          ]
+        },
+        {
+          "title": "Tables & memory",
+          "items": [
+            "New `DataSource` class + `useDataSource` for virtualized tables: bounded in-memory page cache with eviction, replacing unbounded `useDatasetPage` accumulation.",
+            "`DataTable` / `SimpleTable` supports a `dataSource` mode (virtual rows + `total`) next to the existing dense `data` mode; paged mode disables client sort/filter to avoid misleading results.",
+            "Fix: long scroll no longer leaves the table stuck on a single “Loading…” column—column schema is inferred once and cached so page 0 is not re-pinned in the eviction loop."
+          ]
+        },
+        {
+          "title": "Charts & UI",
+          "items": [
+            "`useDatasetSlice` ties chart data to the worker with viewport-aware, aggregated series loading.",
+            "Cartesian charts: pan/zoom viewport interaction hook, more robust paint and SVG mount, optional bar series renderer, extra axis margin for preview context.",
+            "Visuals page: `ChartCard` previews and a richer sample/showcase experience."
+          ]
+        },
+        {
+          "title": "Tests & quality",
+          "items": [
+            "Broadened Vitest coverage: utils, dates, CSV, format, object-path, localStorage mock, engine aggregations, dataset storage, `DataSource` unit tests, and more."
+          ]
+        }
+      ]
+    },
+    {
       "id": "2026-04-11",
       "date": "Apr 11, 2026",
       "title": "D3 engine: modular renderers, CartesianChart & registry",
