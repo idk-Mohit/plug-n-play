@@ -4,7 +4,7 @@ import { AppToast } from "./components/AppToast";
 import ViewRenderer from "./components/ViewRenderer";
 import Dashboard from "./containers/dashboard/Dashboard";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
-import { useSetAtom } from "jotai";
+import { useAtomValue, useSetAtom } from "jotai";
 import { useStore } from "jotai/react";
 import { useCallback, useEffect, useRef } from "react";
 import { getEngineRpc } from "@/core/rpc/engineSingleton";
@@ -25,6 +25,14 @@ import {
   createDefaultSampleDatasetMeta,
   DEFAULT_SAMPLE_DATASET_ID,
 } from "@/state/data/defaultSampleDataset";
+import {
+  hydrateHistoryFromIdb,
+  normalizeSamplerIntervalMs,
+  setSamplerInterval,
+  startSystemSampler,
+  stopSystemSampler,
+} from "@/core/system/sampler";
+import { samplerIntervalMsAtom } from "@/state/system/atoms";
 
 /**
  * The main app component.
@@ -46,6 +54,14 @@ import {
  *
  * @returns The main app component.
  */
+function SamplerIntervalBridge() {
+  const ms = useAtomValue(samplerIntervalMsAtom);
+  useEffect(() => {
+    setSamplerInterval(ms);
+  }, [ms]);
+  return null;
+}
+
 function App() {
   const store = useStore();
   const setPersistedDatasets = useSetAtom(persistedDatasetsAtom);
@@ -151,8 +167,19 @@ function App() {
     setPersistedDatasets,
   ]);
 
+  useEffect(() => {
+    startSystemSampler(
+      normalizeSamplerIntervalMs(store.get(samplerIntervalMsAtom)),
+    );
+    void hydrateHistoryFromIdb();
+    return () => {
+      stopSystemSampler();
+    };
+  }, [store]);
+
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+      <SamplerIntervalBridge />
       <AppToast />
       <AppConfirmDialog />
       <Dashboard>
