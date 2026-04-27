@@ -1,6 +1,7 @@
 import { V, type RpcRequest } from "@/core/rpc/config/protocol";
 import { ok, err } from "@/engine/rpcResponse";
 import * as dataService from "@/engine/services/data.service";
+import * as systemService from "@/engine/services/system.service";
 
 /**
  * ------------------------------------------------------------
@@ -27,6 +28,8 @@ const routes: Record<string, (req: RpcRequest) => Promise<unknown>> = {
   "System.pong": async (req: RpcRequest) => {
     return ok(req.id, { ping: true, t: Date.now() });
   },
+  "System.heap": systemService.getHeap,
+  "System.stats": systemService.getStats,
   "Data.getMeta": dataService.getMeta,
   "Data.getPreview": dataService.getPreview,
   "Data.getRange": dataService.getRange,
@@ -106,6 +109,7 @@ self.onmessage = async (ev: MessageEvent) => {
   };
 
   const key = routeKey(req.svc, req.method);
+  systemService.bumpRouteHit(key);
   const handler = routes[key];
 
   // If route doesn't exist
@@ -128,6 +132,7 @@ self.onmessage = async (ev: MessageEvent) => {
     self.postMessage(res);
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
+    systemService.recordWorkerRouteError(message);
     self.postMessage(err(req.id, "E_INTERNAL", message));
   }
 };

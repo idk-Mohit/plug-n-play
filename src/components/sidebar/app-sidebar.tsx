@@ -1,19 +1,36 @@
 import * as React from "react";
 
-import { NavMain } from "./main-sidebar";
+import {
+  IconActivity,
+  IconChartLine,
+  IconDatabase,
+  IconLayoutDashboard,
+} from "@tabler/icons-react";
+
+import { NavMain, type NavMainItem } from "./main-sidebar";
 
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
-  // SidebarFooter,
   SidebarHeader,
   SidebarMenu,
+  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { computeHealth } from "@/core/system/health";
+import { cn } from "@/lib/utils";
+import {
+  activeDatasetAtom,
+  persistedDatasetsAtom,
+} from "@/state/data/dataset";
 import { useAtomValue, useSetAtom } from "jotai";
 import { sidebarTransitionAtom } from "@/state/ui/layout";
+import {
+  liveSampleAtom,
+  samplerEnabledAtom,
+} from "@/state/system/atoms";
 import { activeViewAtom } from "@/state/ui/view";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -23,42 +40,108 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   // const [{view}, setView] = useAtom(activeViewAtom);
   const view = useAtomValue(activeViewAtom).view;
   const setView = useSetAtom(activeViewAtom);
+  const samplerOn = useAtomValue(samplerEnabledAtom);
+  const setSamplerOn = useSetAtom(samplerEnabledAtom);
+  const live = useAtomValue(liveSampleAtom);
+  const health = computeHealth(live);
+  const activeDataset = useAtomValue(activeDatasetAtom);
+  const persistedDatasets = useAtomValue(persistedDatasetsAtom);
 
-  const data = {
-    user: {
-      name: "shadcn",
-      email: "m@example.com",
-      avatar: "/avatars/shadcn.jpg",
-    },
-    navMain: [
+  const navMain = React.useMemo((): NavMainItem[] => {
+    const datasetSubtitle = activeDataset?.name ?? "No dataset selected";
+    const libraryCount = persistedDatasets.length;
+
+    return [
       {
         title: "Dashboards",
         url: "#",
+        icon: IconLayoutDashboard,
+        description: datasetSubtitle,
         onClick: () => setView({ view: "dashboard", meta: undefined }),
         active: view === "dashboard",
       },
       {
         title: "Datasources",
         url: "#",
+        icon: IconDatabase,
+        description:
+          libraryCount === 1 ? "1 dataset" : `${libraryCount} datasets`,
         onClick: () => setView({ view: "datasources" }),
         active: view === "datasources",
       },
       {
         title: "Visualizations",
         url: "#",
+        icon: IconChartLine,
         badge: "Beta",
+        description: "Chart gallery",
         onClick: () => setView({ view: "visuals" }),
         active: view === "visuals",
       },
       {
         title: "Activity",
         url: "#",
-        badge: "Soon",
-        disabled: true,
+        icon: IconActivity,
+        description: samplerOn
+          ? [
+              live?.fps != null ? `${Math.round(live.fps)} fps` : "— fps",
+              live?.heap?.used != null
+                ? `${Math.round(live.heap.used / 1024 / 1024)} MiB heap`
+                : null,
+            ]
+              .filter(Boolean)
+              .join(" · ")
+          : "Sampling off",
+        onClick: () => {
+          setSamplerOn(true);
+          setView({ view: "activity", meta: undefined });
+        },
         active: view === "activity",
+        trailing: (
+          <SidebarMenuAction
+            type="button"
+            aria-label={
+              samplerOn
+                ? "Turn activity tracking off"
+                : "Turn activity tracking on"
+            }
+            title={samplerOn ? "Tracking on" : "Tracking off"}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setSamplerOn((v) => !v);
+            }}
+            className="top-2 right-2 flex h-7 w-7 items-center justify-center border-0 bg-transparent hover:bg-sidebar-accent md:opacity-100"
+          >
+            <span
+              className={cn(
+                "relative z-0 size-2.5 shrink-0 rounded-full border border-border/60 transition-colors duration-300",
+                !samplerOn && "bg-muted-foreground/40",
+                samplerOn &&
+                  health === "ok" &&
+                  "bg-emerald-500 activity-sidebar-dot--live",
+                samplerOn &&
+                  health === "warn" &&
+                  "bg-amber-500 activity-sidebar-dot--live",
+                samplerOn &&
+                  health === "bad" &&
+                  "bg-red-500 activity-sidebar-dot--live",
+              )}
+            />
+          </SidebarMenuAction>
+        ),
       },
-    ],
-  };
+    ];
+  }, [
+    activeDataset?.name,
+    health,
+    live,
+    persistedDatasets.length,
+    samplerOn,
+    setSamplerOn,
+    setView,
+    view,
+  ]);
 
   React.useEffect(() => {
     const el = sidebarRef.current;
@@ -106,7 +189,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        <NavMain items={navMain} />
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>

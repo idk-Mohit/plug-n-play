@@ -58,3 +58,21 @@ export type DataSaveManifestArgs = unknown[];
 export type DataGetAggregatedResult = {
   points: timeseriesdata[];
 };
+
+/** Worker `System.heap` result (Chrome exposes heap sizes; other browsers may not). */
+export type SystemHeapResult =
+  | {
+      t: number;
+      used: number;
+      total: number;
+      limit: number;
+    }
+  | { t: number; unavailable: true };
+
+/** Worker `System.stats` aggregate diagnostics. */
+export type SystemStatsResult = {
+  t: number;
+  heap: { used: number; total: number; limit: number } | null;
+  routeHits: Record<string, number>;
+  lastError: { t: number; message: string } | null;
+};

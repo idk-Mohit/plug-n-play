@@ -8,6 +8,8 @@ type ErrResponse = RpcResponse & { ok: false; error: unknown };
 export class MiniGrpc {
   private w: Worker;
   private inflight = new Map<string, (msg: RpcResponse) => void>();
+  /** Last completed worker RPC round-trip (ms), Chrome performance clock. */
+  private lastRttMs: number | undefined;
 
   constructor(worker: Worker) {
     this.w = worker;
@@ -58,6 +60,27 @@ export class MiniGrpc {
     });
 
     // register before sending to avoid races
+    const t0 = performance.now();
+
+    // #region agent log
+    const __agentInflight = this.inflight.size;
+    if (__agentInflight % 25 === 0 && __agentInflight > 0) {
+      fetch('http://127.0.0.1:7607/ingest/2d7e6e54-26fe-443a-8f04-dd7367f469d2', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '3c2b1a' },
+        body: JSON.stringify({
+          sessionId: '3c2b1a',
+          runId: 'memory-bug',
+          hypothesisId: 'H2',
+          location: 'client.ts:MiniGrpc.call',
+          message: 'RPC inflight crossed threshold',
+          data: { svc, method, inflight: __agentInflight, argsBytes: JSON.stringify(args).length },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+    }
+    // #endregion
+
     this.w.postMessage(req);
 
     try {
@@ -79,9 +102,19 @@ export class MiniGrpc {
 
       return (msg as OkResponse<T>).result;
     } finally {
+      this.lastRttMs = performance.now() - t0;
       this.inflight.delete(id);
       if (to) clearTimeout(to);
     }
+  }
+
+  /** Pending worker RPCs awaiting a response (excludes LocalStore routes). */
+  getInflightCount(): number {
+    return this.inflight.size;
+  }
+
+  getLastRttMs(): number | undefined {
+    return this.lastRttMs;
   }
 
   // Convenience helpers matching your existing API
