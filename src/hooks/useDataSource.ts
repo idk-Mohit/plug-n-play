@@ -39,11 +39,14 @@ export function useDataSource(
     }
 
     setLoading(true);
-    const ds = new DataSource<AnyRecord>(policy, {
-      fetchPage: async (offset, limit) => {
-        const r = await getEngineRpc().call<GetPageRpcResult>("Data", "getPage", [
-          { datasetId, offset, limit },
-        ]);
+    const ds = new DataSource<AnyRecord>(vizId, policy, {
+      fetchPage: async (offset, limit, signal) => {
+        const r = await getEngineRpc().call<GetPageRpcResult>(
+          "Data",
+          "getPage",
+          [{ datasetId, offset, limit }],
+          { signal },
+        );
         return {
           rows: r.rows,
           total: r.total,
@@ -64,10 +67,10 @@ export function useDataSource(
       ds.dispose();
       if (dsRef.current === ds) dsRef.current = null;
     };
-    // Inline `policy` objects from callers: depend on fields only, not object identity.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     datasetId,
+    vizId,
     policy?.bandPages,
     policy?.overscanPages,
     policy?.pageSize,

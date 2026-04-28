@@ -31,7 +31,7 @@ export class MiniGrpc {
     svc: string,
     method: string,
     args: unknown[] = [],
-    opts: { timeout?: number } = {}
+    opts: { timeout?: number; signal?: AbortSignal } = {},
   ): Promise<T> {
     const timeoutMs = opts.timeout ?? 10_000;
 
@@ -51,35 +51,38 @@ export class MiniGrpc {
     };
 
     let to: ReturnType<typeof setTimeout> | null = null;
+    let rejectP: ((e: unknown) => void) | undefined;
+
     const respP = new Promise<RpcResponse>((resolve, reject) => {
-      this.inflight.set(id, (msg: RpcResponse) => resolve(msg));
+      rejectP = reject;
+      this.inflight.set(id, (msg: RpcResponse) => {
+        this.inflight.delete(id);
+        resolve(msg);
+      });
       to = setTimeout(() => {
         this.inflight.delete(id);
         reject(new Error(`RPC timeout: ${svc}.${method}`));
       }, timeoutMs);
     });
 
-    // register before sending to avoid races
     const t0 = performance.now();
 
-    // #region agent log
-    const __agentInflight = this.inflight.size;
-    if (__agentInflight % 25 === 0 && __agentInflight > 0) {
-      fetch('http://127.0.0.1:7607/ingest/2d7e6e54-26fe-443a-8f04-dd7367f469d2', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '3c2b1a' },
-        body: JSON.stringify({
-          sessionId: '3c2b1a',
-          runId: 'memory-bug',
-          hypothesisId: 'H2',
-          location: 'client.ts:MiniGrpc.call',
-          message: 'RPC inflight crossed threshold',
-          data: { svc, method, inflight: __agentInflight, argsBytes: JSON.stringify(args).length },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
+    const onAbort = () => {
+      this.w.postMessage({ v: V, cancel: true, id });
+      this.inflight.delete(id);
+      if (to) {
+        clearTimeout(to);
+        to = null;
+      }
+      rejectP?.(new DOMException("Aborted", "AbortError"));
+    };
+
+    if (opts.signal) {
+      if (opts.signal.aborted) {
+        throw new DOMException("Aborted", "AbortError");
+      }
+      opts.signal.addEventListener("abort", onAbort, { once: true } as AddEventListenerOptions);
     }
-    // #endregion
 
     this.w.postMessage(req);
 
@@ -103,8 +106,12 @@ export class MiniGrpc {
       return (msg as OkResponse<T>).result;
     } finally {
       this.lastRttMs = performance.now() - t0;
-      this.inflight.delete(id);
-      if (to) clearTimeout(to);
+      if (opts.signal) {
+        opts.signal.removeEventListener("abort", onAbort);
+      }
+      if (to) {
+        clearTimeout(to);
+      }
     }
   }
 
@@ -130,8 +137,6 @@ export class MiniGrpc {
     switch (method) {
       case "listDatasets":
         return LocalStore.listDatasets() as unknown as T;
-      // case "listDatasetIds":
-      // return LocalStore.listDatasetIds() as unknown as T;
       default:
         throw new Error(`Unknown LocalStore method: ${method}`);
     }
@@ -139,7 +144,7 @@ export class MiniGrpc {
 
   // -------- Type guards (kept simple) --------
   private isOkResponse<T = unknown>(
-    msg: RpcResponse | unknown
+    msg: RpcResponse | unknown,
   ): msg is OkResponse<T> {
     if (typeof msg !== "object" || msg === null) return false;
     const o = msg as Record<string, unknown>;

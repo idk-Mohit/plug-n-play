@@ -12,6 +12,15 @@ export type RpcRequest = {
   svc: string;
   method: string;
   args?: unknown[];
+  /** Worker-only: set by `engine.worker` per request (not sent from UI). */
+  signal?: AbortSignal;
+};
+
+/** Client → worker: cancel an in-flight RPC by id. */
+export type RpcCancelEnvelope = {
+  v: RpcVersion;
+  cancel: true;
+  id: string;
 };
 
 export type RpcOk<T = unknown> = {
