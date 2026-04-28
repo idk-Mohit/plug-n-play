@@ -5,6 +5,13 @@ import { Combobox } from "../ui/combobox";
 import type { DatasetRef } from "@/core/rpc/controllers/datasources";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAtom, useAtomValue } from "jotai";
+import { computeHealth } from "@/core/system/health";
+import { cn } from "@/lib/utils";
+import {
+  activityWidgetOpenAtom,
+  liveSampleAtom,
+  samplerEnabledAtom,
+} from "@/state/system/atoms";
 import {
   activeDatasetAtom,
   persistedDatasetsAtom,
@@ -23,6 +30,19 @@ export function SiteFooter() {
   const activeView = useAtomValue(activeViewAtom);
   const [activeDatasetRef, setActiveDatasetRef] = useAtom(activeDatasetAtom);
   const persistedDatasets = useAtomValue(persistedDatasetsAtom);
+  const samplerOn = useAtomValue(samplerEnabledAtom);
+  const live = useAtomValue(liveSampleAtom);
+  const [widgetOpen, setWidgetOpen] = useAtom(activityWidgetOpenAtom);
+  const health = computeHealth(live);
+
+  useEffect(() => {
+    if (activeView.view === "activity") {
+      setWidgetOpen(false);
+    }
+  }, [activeView.view, setWidgetOpen]);
+
+  const showActivityPill =
+    samplerOn && activeView.view !== "activity";
 
   const dataSetRef = useMemo((): DatasetRef[] => {
     const defaultRef: DatasetRef = {
@@ -82,9 +102,43 @@ export function SiteFooter() {
         />
         <UploadDate date={activeDataSetMeta?.uploadDate} />
 
-        {/* data-set selector */}
-        {activeView.view === "dashboard" ? (
-          <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-2">
+          {showActivityPill ? (
+            <button
+              type="button"
+              className={cn(
+                "activity-footer-pill inline-flex max-w-[14rem] items-center gap-2 truncate rounded-full border bg-muted/60 px-3 py-1 text-xs font-mono transition-transform hover:scale-[1.03]",
+                health === "bad" && "activity-footer-pill--bad",
+              )}
+              data-alert={health === "bad" ? "bad" : undefined}
+              aria-expanded={widgetOpen}
+              aria-label={
+                widgetOpen
+                  ? "Close activity monitor panel"
+                  : "Open activity monitor panel"
+              }
+              onClick={() => setWidgetOpen((o) => !o)}
+            >
+              <span
+                className={cn(
+                  "size-2 shrink-0 rounded-full",
+                  health === "ok" && "bg-emerald-500",
+                  health === "warn" && "bg-amber-500",
+                  health === "bad" && "bg-red-500",
+                )}
+              />
+              <span className="truncate">
+                {live?.fps != null ? `${live.fps.toFixed(0)} fps` : "— fps"}
+                <span aria-hidden className="px-1">
+                  ·
+                </span>
+                {live?.heap?.used != null
+                  ? `${(live.heap.used / 1024 / 1024).toFixed(0)} MiB`
+                  : "— MiB"}
+              </span>
+            </button>
+          ) : null}
+          {activeView.view === "dashboard" ? (
             <Combobox
               options={dataSetRef}
               getOptionLabel={(s) => s.name}
@@ -94,8 +148,8 @@ export function SiteFooter() {
               triggerWidthClass="w-64" // easy width control
               onValueChange={(v) => dataSetMetaHandler(v)} // v is string | null
             />
-          </div>
-        ) : null}
+          ) : null}
+        </div>
       </div>
     </header>
   );

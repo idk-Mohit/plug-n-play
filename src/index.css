@@ -265,3 +265,82 @@ body {
     animation: fade-in 300ms ease-in forwards;
   }
 }
+
+/* Activity monitor: CSS-only motion + heap ring */
+
+@property --p {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+
+@keyframes pulse-soft {
+
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.85;
+    transform: scale(1.35);
+  }
+}
+
+@keyframes activity-shimmer {
+
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes flash-bad {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  25%,
+  45%,
+  65% {
+    opacity: 0.5;
+  }
+}
+
+.activity-sidebar-dot--live::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 9999px;
+  pointer-events: none;
+  animation: pulse-soft 1.6s ease-in-out infinite;
+  border: 1px solid color-mix(in oklab, currentColor 35%, transparent);
+}
+
+.activity-heap-ring {
+  background: conic-gradient(from 0deg,
+      currentColor calc(var(--p) * 1%),
+      color-mix(in oklab, currentColor 16%, transparent) 0);
+  transition: --p 400ms ease;
+}
+
+.activity-live-dot {
+  animation: activity-shimmer 2.4s ease-in-out infinite;
+}
+
+.activity-footer-pill[data-alert="bad"] {
+  animation: flash-bad 1.15s ease-in-out 2;
+}
+
+.activity-mini-panel--alert-bad {
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--destructive) 40%, transparent),
+    0 10px 40px -10px color-mix(in oklab, var(--destructive) 25%, transparent);
+}

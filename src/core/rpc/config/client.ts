@@ -8,6 +8,8 @@ type ErrResponse = RpcResponse & { ok: false; error: unknown };
 export class MiniGrpc {
   private w: Worker;
   private inflight = new Map<string, (msg: RpcResponse) => void>();
+  /** Last completed worker RPC round-trip (ms), Chrome performance clock. */
+  private lastRttMs: number | undefined;
 
   constructor(worker: Worker) {
     this.w = worker;
@@ -29,7 +31,7 @@ export class MiniGrpc {
     svc: string,
     method: string,
     args: unknown[] = [],
-    opts: { timeout?: number } = {}
+    opts: { timeout?: number; signal?: AbortSignal } = {},
   ): Promise<T> {
     const timeoutMs = opts.timeout ?? 10_000;
 
@@ -49,15 +51,39 @@ export class MiniGrpc {
     };
 
     let to: ReturnType<typeof setTimeout> | null = null;
+    let rejectP: ((e: unknown) => void) | undefined;
+
     const respP = new Promise<RpcResponse>((resolve, reject) => {
-      this.inflight.set(id, (msg: RpcResponse) => resolve(msg));
+      rejectP = reject;
+      this.inflight.set(id, (msg: RpcResponse) => {
+        this.inflight.delete(id);
+        resolve(msg);
+      });
       to = setTimeout(() => {
         this.inflight.delete(id);
         reject(new Error(`RPC timeout: ${svc}.${method}`));
       }, timeoutMs);
     });
 
-    // register before sending to avoid races
+    const t0 = performance.now();
+
+    const onAbort = () => {
+      this.w.postMessage({ v: V, cancel: true, id });
+      this.inflight.delete(id);
+      if (to) {
+        clearTimeout(to);
+        to = null;
+      }
+      rejectP?.(new DOMException("Aborted", "AbortError"));
+    };
+
+    if (opts.signal) {
+      if (opts.signal.aborted) {
+        throw new DOMException("Aborted", "AbortError");
+      }
+      opts.signal.addEventListener("abort", onAbort, { once: true } as AddEventListenerOptions);
+    }
+
     this.w.postMessage(req);
 
     try {
@@ -79,9 +105,23 @@ export class MiniGrpc {
 
       return (msg as OkResponse<T>).result;
     } finally {
-      this.inflight.delete(id);
-      if (to) clearTimeout(to);
+      this.lastRttMs = performance.now() - t0;
+      if (opts.signal) {
+        opts.signal.removeEventListener("abort", onAbort);
+      }
+      if (to) {
+        clearTimeout(to);
+      }
     }
+  }
+
+  /** Pending worker RPCs awaiting a response (excludes LocalStore routes). */
+  getInflightCount(): number {
+    return this.inflight.size;
+  }
+
+  getLastRttMs(): number | undefined {
+    return this.lastRttMs;
   }
 
   // Convenience helpers matching your existing API
@@ -97,8 +137,6 @@ export class MiniGrpc {
     switch (method) {
       case "listDatasets":
         return LocalStore.listDatasets() as unknown as T;
-      // case "listDatasetIds":
-      // return LocalStore.listDatasetIds() as unknown as T;
       default:
         throw new Error(`Unknown LocalStore method: ${method}`);
     }
@@ -106,7 +144,7 @@ export class MiniGrpc {
 
   // -------- Type guards (kept simple) --------
   private isOkResponse<T = unknown>(
-    msg: RpcResponse | unknown
+    msg: RpcResponse | unknown,
   ): msg is OkResponse<T> {
     if (typeof msg !== "object" || msg === null) return false;
     const o = msg as Record<string, unknown>;

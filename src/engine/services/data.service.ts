@@ -1,8 +1,23 @@
 import {
+  idbBulkWriteRows,
+  idbClearRowsAndMeta,
+  idbCountTimeRange,
   idbDelete,
+  idbDeleteAllLegacyDatasetPrefixedKeys,
+  idbDeleteAllRowsForDataset,
+  idbDeleteLegacyKeysByPrefix,
+  idbDeleteMeta,
   idbGet,
+  idbGetMeta,
+  idbHasLegacyKeysWithPrefix,
+  idbIterateTimeRangePayloads,
   idbListDatasetKeys,
+  idbPutMeta,
+  idbReadOrdinalSlice,
+  idbRowCountForDataset,
   idbSave,
+  idbTimeXRangeForDataset,
+  type DatasetMetaRecord,
 } from "@/core/storage/indexdb";
 import type {
   AggregateMethod,
@@ -18,12 +33,14 @@ import type {
 } from "@/core/rpc/data-contract";
 import type { RpcRequest } from "@/core/rpc/config/protocol";
 import type { timeseriesdata } from "@/types/data.types";
-import { bucketAggregate, lttb } from "@/engine/aggregations";
+import { streamingBucketAggregate, streamingLttb } from "@/engine/aggregations/streaming";
 
 import { ok, err } from "@/engine/rpcResponse";
 
 /** Must match {@link DATASETS_MANIFEST_IDB_KEY} in dataset-storage (avoid importing Jotai into worker). */
 const DATASETS_MANIFEST_IDB_KEY = "datasources-manifest";
+
+const META_VERSION = 1 as const;
 
 function xMsFromRow(row: unknown): number | null {
   if (row === null || typeof row !== "object" || Array.isArray(row)) return null;
@@ -48,26 +65,11 @@ function toTimeseriesRow(row: unknown): timeseriesdata | null {
   return { x: new Date(tx).toISOString(), y };
 }
 
-async function loadRows(datasetId: string): Promise<unknown[]> {
-  const raw = (await idbGet(`dataset:${datasetId}`)) ?? [];
-  return Array.isArray(raw) ? raw : [raw];
-}
-
-function filterByRange(
-  rows: unknown[],
-  fromMs: number,
-  toMs: number,
+function applyOrderAndLimit(
+  out: timeseriesdata[],
   order: "asc" | "desc",
-  limit?: number,
+  limit: number | undefined,
 ): timeseriesdata[] {
-  const out: timeseriesdata[] = [];
-  for (const row of rows) {
-    const p = toTimeseriesRow(row);
-    if (!p) continue;
-    const t = Date.parse(String(p.x));
-    if (t < fromMs || t > toMs) continue;
-    out.push(p);
-  }
   out.sort((a, b) => {
     const da = Date.parse(String(a.x));
     const db = Date.parse(String(b.x));
@@ -79,28 +81,90 @@ function filterByRange(
   return out;
 }
 
+const EMPTY_META: DatasetMetaRecord = {
+  version: META_VERSION,
+  rowCount: 0,
+  xRange: null,
+};
+
+async function ensureDataset(datasetId: string): Promise<DatasetMetaRecord> {
+  const existing = await idbGetMeta(datasetId);
+  if (existing && existing.rowCount > 0) {
+    return existing;
+  }
+
+  const legacyKey = `dataset:${datasetId}`;
+  const legacy = await idbGet<unknown>(legacyKey);
+  if (legacy !== undefined) {
+    const rows = Array.isArray(legacy) ? legacy : legacy != null ? [legacy] : [];
+    const { xRange } = await idbBulkWriteRows(datasetId, rows);
+    const meta: DatasetMetaRecord = {
+      version: META_VERSION,
+      rowCount: rows.length,
+      xRange,
+    };
+    await idbPutMeta(datasetId, meta);
+    await idbDelete(legacyKey);
+    return meta;
+  }
+
+  /** WIP keys from older experiments: `dataset:<id>:meta`, `dataset:<id>:chunk:<n>` */
+  const wipPrefix = `${legacyKey}:`;
+  if (await idbHasLegacyKeysWithPrefix(wipPrefix)) {
+    await idbDeleteLegacyKeysByPrefix(wipPrefix);
+  }
+
+  /** Rows without meta (failed meta write, legacy bug) — rebuild meta from `rows` store. */
+  const rowCount = await idbRowCountForDataset(datasetId);
+  if (rowCount > 0) {
+    const xRange = await idbTimeXRangeForDataset(datasetId);
+    const meta: DatasetMetaRecord = {
+      version: META_VERSION,
+      rowCount,
+      xRange,
+    };
+    await idbPutMeta(datasetId, meta);
+    return meta;
+  }
+
+  if (existing) {
+    return existing;
+  }
+
+  /** Do not persist empty meta on read — avoids poisoning ids before `Data.save` completes. */
+  return { ...EMPTY_META };
+}
+
+async function* iterTsInRangeAsc(
+  datasetId: string,
+  fromMs: number,
+  toMs: number,
+  signal?: AbortSignal,
+): AsyncGenerator<timeseriesdata, void, undefined> {
+  for await (const payload of idbIterateTimeRangePayloads(
+    datasetId,
+    fromMs,
+    toMs,
+    "next",
+    signal,
+  )) {
+    const p = toTimeseriesRow(payload);
+    if (p) yield p;
+  }
+}
+
 export async function getMeta(req: RpcRequest) {
   const datasetId = req.args?.[0] as DataGetMetaArgs;
   if (typeof datasetId !== "string" || !datasetId) {
     return err(req.id, "E_BAD_REQUEST", "getMeta: datasetId required");
   }
   try {
-    const rows = await loadRows(datasetId);
-    let minT = Infinity;
-    let maxT = -Infinity;
-    let any = false;
-    for (const row of rows) {
-      const t = xMsFromRow(row);
-      if (t === null) continue;
-      any = true;
-      if (t < minT) minT = t;
-      if (t > maxT) maxT = t;
-    }
-    const meta: DataDatasetMeta = {
-      rowCount: rows.length,
-      xRange: any ? [minT, maxT] : null,
+    const meta = await ensureDataset(datasetId);
+    const out: DataDatasetMeta = {
+      rowCount: meta.rowCount,
+      xRange: meta.xRange,
     };
-    return ok(req.id, meta);
+    return ok(req.id, out);
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     return err(req.id, "E_INTERNAL", message);
@@ -113,11 +177,23 @@ export async function getPreview(req: RpcRequest) {
     return err(req.id, "E_BAD_REQUEST", "getPreview: { datasetId, limit } required");
   }
   const limit = Math.max(1, Math.min(arg.limit ?? 50, 10_000));
+  const signal = req.signal;
   try {
-    const rows = await loadRows(arg.datasetId);
-    const slice = rows.slice(0, limit);
+    const meta = await ensureDataset(arg.datasetId);
+    if (meta.rowCount === 0) {
+      return ok(req.id, []);
+    }
+    const slice = await idbReadOrdinalSlice(
+      arg.datasetId,
+      0,
+      Math.min(limit, meta.rowCount),
+      signal,
+    );
     return ok(req.id, slice);
   } catch (e) {
+    if (e instanceof DOMException && e.name === "AbortError") {
+      throw e;
+    }
     const message = e instanceof Error ? e.message : String(e);
     return err(req.id, "E_INTERNAL", message);
   }
@@ -128,18 +204,32 @@ export async function getRange(req: RpcRequest) {
   if (!arg || typeof arg.datasetId !== "string") {
     return err(req.id, "E_BAD_REQUEST", "getRange: args required");
   }
+  const signal = req.signal;
+  const order = arg.order ?? "asc";
+  const limit = arg.limit;
   try {
-    const rows = await loadRows(arg.datasetId);
-    const order = arg.order ?? "asc";
-    const points = filterByRange(
-      rows,
+    await ensureDataset(arg.datasetId);
+    const dir: IDBCursorDirection = order === "desc" ? "prev" : "next";
+    const collected: timeseriesdata[] = [];
+    for await (const payload of idbIterateTimeRangePayloads(
+      arg.datasetId,
       arg.fromMs,
       arg.toMs,
-      order,
-      arg.limit,
-    );
-    return ok(req.id, points);
+      dir,
+      signal,
+    )) {
+      const p = toTimeseriesRow(payload);
+      if (!p) continue;
+      const t = Date.parse(String(p.x));
+      if (t < arg.fromMs || t > arg.toMs) continue;
+      collected.push(p);
+      if (limit !== undefined && collected.length >= limit) break;
+    }
+    return ok(req.id, applyOrderAndLimit(collected, order, limit));
   } catch (e) {
+    if (e instanceof DOMException && e.name === "AbortError") {
+      throw e;
+    }
     const message = e instanceof Error ? e.message : String(e);
     return err(req.id, "E_INTERNAL", message);
   }
@@ -152,16 +242,33 @@ export async function getPage(req: RpcRequest) {
   }
   const offset = Math.max(0, arg.offset | 0);
   const limit = Math.max(1, Math.min(arg.limit | 0, 500));
+  const signal = req.signal;
   try {
-    const rows = await loadRows(arg.datasetId);
-    const slice = rows.slice(offset, offset + limit);
+    const meta = await ensureDataset(arg.datasetId);
+    if (offset >= meta.rowCount) {
+      return ok(req.id, {
+        rows: [],
+        total: meta.rowCount,
+        offset,
+        limit,
+      });
+    }
+    const slice = await idbReadOrdinalSlice(
+      arg.datasetId,
+      offset,
+      limit,
+      signal,
+    );
     return ok(req.id, {
       rows: slice,
-      total: rows.length,
+      total: meta.rowCount,
       offset,
       limit,
     });
   } catch (e) {
+    if (e instanceof DOMException && e.name === "AbortError") {
+      throw e;
+    }
     const message = e instanceof Error ? e.message : String(e);
     return err(req.id, "E_INTERNAL", message);
   }
@@ -174,25 +281,42 @@ export async function getAggregated(req: RpcRequest) {
   }
   const buckets = Math.max(2, Math.min(arg.buckets | 0, 4096));
   const method: AggregateMethod = arg.method ?? "lttb";
+  const signal = req.signal;
   try {
-    const rows = await loadRows(arg.datasetId);
-    let points = filterByRange(rows, arg.fromMs, arg.toMs, "asc");
-    if (points.length > buckets) {
-      if (method === "lttb") {
-        points = lttb(points, buckets);
-      } else {
-        points = bucketAggregate(
-          points,
-          arg.fromMs,
-          arg.toMs,
-          buckets,
-          method,
-        );
-      }
+    await ensureDataset(arg.datasetId);
+    const count = await idbCountTimeRange(
+      arg.datasetId,
+      arg.fromMs,
+      arg.toMs,
+      signal,
+    );
+    if (count === 0) {
+      const result: DataGetAggregatedResult = { points: [] };
+      return ok(req.id, result);
     }
+
+    const makeIter = () =>
+      iterTsInRangeAsc(arg.datasetId, arg.fromMs, arg.toMs, signal);
+
+    let points: timeseriesdata[];
+    if (method === "lttb") {
+      points = await streamingLttb(makeIter(), count, buckets);
+    } else {
+      points = await streamingBucketAggregate(
+        makeIter(),
+        arg.fromMs,
+        arg.toMs,
+        buckets,
+        method,
+      );
+    }
+
     const result: DataGetAggregatedResult = { points };
     return ok(req.id, result);
   } catch (e) {
+    if (e instanceof DOMException && e.name === "AbortError") {
+      throw e;
+    }
     const message = e instanceof Error ? e.message : String(e);
     return err(req.id, "E_INTERNAL", message);
   }
@@ -204,7 +328,25 @@ export async function save(req: RpcRequest) {
     return err(req.id, "E_BAD_REQUEST", "save: { datasetId, data } required");
   }
   try {
-    await idbSave(`dataset:${arg.datasetId}`, arg.data);
+    const raw = arg.data;
+    const rows = Array.isArray(raw)
+      ? (raw as unknown[])
+      : raw != null && typeof raw === "object"
+        ? [raw]
+        : [];
+    await idbDeleteAllRowsForDataset(arg.datasetId);
+    await idbDeleteMeta(arg.datasetId);
+    await idbDelete(`dataset:${arg.datasetId}`);
+    await idbDeleteLegacyKeysByPrefix(`dataset:${arg.datasetId}:`);
+
+    const { xRange } = await idbBulkWriteRows(arg.datasetId, rows);
+    const meta: DatasetMetaRecord = {
+      version: META_VERSION,
+      rowCount: rows.length,
+      xRange,
+    };
+    await idbPutMeta(arg.datasetId, meta);
+
     return ok(req.id, true);
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
@@ -218,7 +360,10 @@ export async function deleteDataset(req: RpcRequest) {
     return err(req.id, "E_BAD_REQUEST", "deleteDataset: id required");
   }
   try {
+    await idbDeleteAllRowsForDataset(id);
+    await idbDeleteMeta(id);
     await idbDelete(`dataset:${id}`);
+    await idbDeleteLegacyKeysByPrefix(`dataset:${id}:`);
     return ok(req.id, true);
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
@@ -262,8 +407,8 @@ export async function listDatasetKeys(req: RpcRequest) {
 
 export async function clearAll(req: RpcRequest) {
   try {
-    const keys = await idbListDatasetKeys();
-    await Promise.all(keys.map((k) => idbDelete(k)));
+    await idbClearRowsAndMeta();
+    await idbDeleteAllLegacyDatasetPrefixedKeys();
     await idbDelete(DATASETS_MANIFEST_IDB_KEY);
     return ok(req.id, true);
   } catch (e) {

@@ -2,6 +2,7 @@ import { SiteFooter } from "@/components/footer/Footer";
 import { SiteHeader } from "@/components/header/MainHeader";
 import { AppSidebar } from "@/components/sidebar/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { ActivityMiniPanel } from "@/containers/activity/ActivityMiniPanel";
 
 export default function DashboardLayout({
   children,
@@ -36,6 +37,7 @@ export default function DashboardLayout({
         </div>
         <SiteFooter />
       </SidebarInset>
+      <ActivityMiniPanel />
     </SidebarProvider>
   );
 }

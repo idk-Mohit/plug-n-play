@@ -22,7 +22,20 @@ export type PageFetchResult = {
   limit: number;
 };
 
+/** Snapshot for Activity system monitor. */
+export type DataSourceStats = {
+  vizId: string;
+  pages: number;
+  hot: number;
+  total: number;
+  inflight: number;
+};
+
 export type DataSourceDeps = {
-  fetchPage: (offset: number, limit: number) => Promise<PageFetchResult>;
+  fetchPage: (
+    offset: number,
+    limit: number,
+    signal?: AbortSignal,
+  ) => Promise<PageFetchResult>;
   onChange: () => void;
 };
