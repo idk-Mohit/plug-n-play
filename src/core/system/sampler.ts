@@ -133,41 +133,12 @@ async function readWorkerHeap(): Promise<SystemSample["workerHeap"]> {
     const h = await rpc.call<SystemHeapResult>("System", "heap", [], {
       timeout: 2000,
     });
-    // #region agent log
-    fetch('http://127.0.0.1:7607/ingest/2d7e6e54-26fe-443a-8f04-dd7367f469d2', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '3c2b1a' },
-      body: JSON.stringify({
-        sessionId: '3c2b1a',
-        runId: 'memory-bug',
-        hypothesisId: 'H4',
-        location: 'sampler.ts:readWorkerHeap',
-        message: 'worker heap read OK',
-        data: h,
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
     if (h && "unavailable" in h && h.unavailable) return undefined;
     if (h && "used" in h) {
       return { used: h.used, total: h.total, limit: h.limit };
     }
-  } catch (e) {
-    // #region agent log
-    fetch('http://127.0.0.1:7607/ingest/2d7e6e54-26fe-443a-8f04-dd7367f469d2', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '3c2b1a' },
-      body: JSON.stringify({
-        sessionId: '3c2b1a',
-        runId: 'memory-bug',
-        hypothesisId: 'H4',
-        location: 'sampler.ts:readWorkerHeap',
-        message: 'worker heap read failed (timeout or error)',
-        data: { error: e instanceof Error ? e.message : String(e), inflight: getEngineRpc().getInflightCount() },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
+  } catch {
+    /* ignore */
   }
   return undefined;
 }

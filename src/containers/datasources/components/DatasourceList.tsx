@@ -141,12 +141,13 @@ export function DatasourceList() {
         setIsDeleting(true);
         await dataEngine.deleteDataset(id);
         setDatasets((prev) => prev.filter((dataset) => dataset.id !== id));
+        setActiveDataset((prev) => (prev?.id === id ? null : prev));
       } finally {
         setIsDeleting(false);
         setDeleteDataSet(null);
       }
     },
-    [setDatasets]
+    [setActiveDataset, setDatasets]
   );
 
   if (datasets.length === 0) {
@@ -210,7 +211,7 @@ export function DatasourceList() {
           if (!open) setExpandedDataset(null);
         }}
       >
-        <DialogContent className="w-[100vw] min-h-fit max-h-[80vh]">
+        <DialogContent className="w-full max-w-[min(1200px,96vw)] sm:max-w-[min(1200px,96vw)] max-h-[85vh] overflow-hidden flex flex-col gap-4">
           <DialogHeader className="gap-4 flex justify-between">
             <DialogTitle>Table View</DialogTitle>
             <DialogDescription />
