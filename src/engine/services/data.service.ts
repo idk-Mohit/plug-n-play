@@ -14,7 +14,9 @@ import {
   idbListDatasetKeys,
   idbPutMeta,
   idbReadOrdinalSlice,
+  idbRowCountForDataset,
   idbSave,
+  idbTimeXRangeForDataset,
   type DatasetMetaRecord,
 } from "@/core/storage/indexdb";
 import type {
@@ -87,7 +89,9 @@ const EMPTY_META: DatasetMetaRecord = {
 
 async function ensureDataset(datasetId: string): Promise<DatasetMetaRecord> {
   const existing = await idbGetMeta(datasetId);
-  if (existing) return existing;
+  if (existing && existing.rowCount > 0) {
+    return existing;
+  }
 
   const legacyKey = `dataset:${datasetId}`;
   const legacy = await idbGet<unknown>(legacyKey);
@@ -108,6 +112,23 @@ async function ensureDataset(datasetId: string): Promise<DatasetMetaRecord> {
   const wipPrefix = `${legacyKey}:`;
   if (await idbHasLegacyKeysWithPrefix(wipPrefix)) {
     await idbDeleteLegacyKeysByPrefix(wipPrefix);
+  }
+
+  /** Rows without meta (failed meta write, legacy bug) — rebuild meta from `rows` store. */
+  const rowCount = await idbRowCountForDataset(datasetId);
+  if (rowCount > 0) {
+    const xRange = await idbTimeXRangeForDataset(datasetId);
+    const meta: DatasetMetaRecord = {
+      version: META_VERSION,
+      rowCount,
+      xRange,
+    };
+    await idbPutMeta(datasetId, meta);
+    return meta;
+  }
+
+  if (existing) {
+    return existing;
   }
 
   /** Do not persist empty meta on read — avoids poisoning ids before `Data.save` completes. */
@@ -307,7 +328,12 @@ export async function save(req: RpcRequest) {
     return err(req.id, "E_BAD_REQUEST", "save: { datasetId, data } required");
   }
   try {
-    const rows = Array.isArray(arg.data) ? (arg.data as unknown[]) : [];
+    const raw = arg.data;
+    const rows = Array.isArray(raw)
+      ? (raw as unknown[])
+      : raw != null && typeof raw === "object"
+        ? [raw]
+        : [];
     await idbDeleteAllRowsForDataset(arg.datasetId);
     await idbDeleteMeta(arg.datasetId);
     await idbDelete(`dataset:${arg.datasetId}`);

@@ -19,6 +19,9 @@ export type DatasetMetaRecord = {
   xRange: [number, number] | null;
 };
 
+/** Persisted row shape for {@link META_STORE} (inline keyPath `datasetId`). */
+export type StoredDatasetMetaRecord = DatasetMetaRecord & { datasetId: string };
+
 export type StoredRow = {
   datasetId: string;
   i: number;
@@ -126,7 +129,14 @@ export async function idbGetMeta(
   datasetId: string,
 ): Promise<DatasetMetaRecord | undefined> {
   const db = await getDb();
-  return db.get(META_STORE, datasetId);
+  const row = await db.get(META_STORE, datasetId);
+  if (!row) return undefined;
+  const rec = row as StoredDatasetMetaRecord;
+  return {
+    version: rec.version,
+    rowCount: rec.rowCount,
+    xRange: rec.xRange,
+  };
 }
 
 export async function idbPutMeta(
@@ -134,7 +144,8 @@ export async function idbPutMeta(
   meta: DatasetMetaRecord,
 ): Promise<void> {
   const db = await getDb();
-  await db.put(META_STORE, meta, datasetId);
+  const rec: StoredDatasetMetaRecord = { datasetId, ...meta };
+  await db.put(META_STORE, rec);
 }
 
 export async function idbDeleteMeta(datasetId: string): Promise<void> {
@@ -215,6 +226,52 @@ export async function idbReadOrdinalSlice(
   return out;
 }
 
+/** Row count for `datasetId` using primary key range (ordinal `i` from 0). */
+export async function idbRowCountForDataset(datasetId: string): Promise<number> {
+  const db = await getDb();
+  const tx = db.transaction(ROWS_STORE, "readonly");
+  const range = IDBKeyRange.bound(
+    [datasetId, 0],
+    [datasetId, Number.MAX_SAFE_INTEGER],
+  );
+  const n = await tx.store.count(range);
+  await tx.done;
+  return n;
+}
+
+/**
+ * Min/max `xMs` for rows in [datasetId] with `xMs >= 0` (via `byDatasetXMs`).
+ * Omits rows stored with `xMs === -1`. Returns null when there is no time-keyed row.
+ */
+export async function idbTimeXRangeForDataset(
+  datasetId: string,
+): Promise<[number, number] | null> {
+  const db = await getDb();
+  const tx = db.transaction(ROWS_STORE, "readonly");
+  const idx = tx.store.index("byDatasetXMs");
+  const range = IDBKeyRange.bound(
+    [datasetId, 0],
+    [datasetId, Number.MAX_SAFE_INTEGER],
+  );
+  let cur = await idx.openCursor(range, "next");
+  if (!cur) {
+    await tx.done;
+    return null;
+  }
+  let minT = (cur.key as [string, number])[1];
+  let maxT = minT;
+  while (cur) {
+    const k = cur.key as [string, number];
+    if (k[0] !== datasetId) break;
+    const t = k[1];
+    if (t < minT) minT = t;
+    if (t > maxT) maxT = t;
+    cur = await cur.continue();
+  }
+  await tx.done;
+  return [minT, maxT];
+}
+
 /** Count rows whose (datasetId, xMs) falls in [fromMs, toMs] on the time index. */
 export async function idbCountTimeRange(
   datasetId: string,
@@ -281,7 +338,7 @@ export async function idbDeleteAllRowsForDataset(
   );
   let cur = await store.openCursor(range);
   while (cur) {
-    await cur.delete();
+    cur.delete();
     cur = await cur.continue();
   }
   await tx.done;
@@ -300,18 +357,32 @@ export async function idbListLegacyDatasetKeyStrings(): Promise<string[]> {
   );
 }
 
-/** Logical dataset ids as `dataset:<uuid>` from meta + legacy monolithic keys. */
+/** Logical dataset ids as `dataset:<uuid>` from meta + legacy monolithic keys + row store. */
 export async function idbListDatasetKeys(): Promise<string[]> {
   const db = await getDb();
-  const tx = db.transaction([META_STORE, LEGACY_DATASET_STORE], "readonly");
+  const tx = db.transaction(
+    [META_STORE, LEGACY_DATASET_STORE, ROWS_STORE],
+    "readonly",
+  );
   const metaStore = tx.objectStore(META_STORE);
   const legStore = tx.objectStore(LEGACY_DATASET_STORE);
+  const rowStore = tx.objectStore(ROWS_STORE);
   const metaIds = (await metaStore.getAllKeys()) as string[];
   const legacyKeys = (await legStore.getAllKeys()) as string[];
+  const rowKeys = (await rowStore.getAllKeys()) as Array<[string, number]>;
+  const rowDatasetIds = new Set<string>();
+  for (const k of rowKeys) {
+    if (Array.isArray(k) && typeof k[0] === "string") {
+      rowDatasetIds.add(k[0]);
+    }
+  }
   await tx.done;
 
   const out = new Set<string>();
   for (const id of metaIds) {
+    out.add(`dataset:${id}`);
+  }
+  for (const id of rowDatasetIds) {
     out.add(`dataset:${id}`);
   }
   for (const k of legacyKeys) {

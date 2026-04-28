@@ -77,6 +77,11 @@ vi.mock("@/core/storage/indexdb", () => ({
   idbCountTimeRange: vi.fn(async () => 0),
   idbIterateTimeRangePayloads: vi.fn(),
   idbListDatasetKeys: vi.fn(async () => []),
+  idbRowCountForDataset: async (id: string) => {
+    const inner = store.ordinal.get(id);
+    return inner?.size ?? 0;
+  },
+  idbTimeXRangeForDataset: vi.fn(async () => null),
 }));
 
 import * as dataService from "./data.service";
@@ -184,6 +189,53 @@ describe("data.service / ensureDataset & IO", () => {
     expect(store.legacy.has("dataset:ds5:chunk:0")).toBe(false);
     expect(store.meta.has("ds5")).toBe(false);
     expect(store.idbPutMetaCalls).toBe(0);
+  });
+
+  it("getPage rebuilds meta when ordinal rows exist but meta is missing", async () => {
+    const rows = [{ v: 1 }, { v: 2 }];
+    const inner = new Map<number, unknown>();
+    inner.set(0, rows[0]);
+    inner.set(1, rows[1]);
+    store.ordinal.set("orphan", inner);
+
+    const res = await dataService.getPage(
+      makeReq({
+        method: "getPage",
+        args: [{ datasetId: "orphan", offset: 0, limit: 10 }],
+      }),
+    );
+
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.result.total).toBe(2);
+      expect(res.result.rows).toEqual(rows);
+    }
+    expect(store.meta.get("orphan")?.rowCount).toBe(2);
+    expect(store.idbPutMetaCalls).toBeGreaterThan(0);
+  });
+
+  it("save persists a single JSON object as one row", async () => {
+    const payload = { point: true, n: 42 };
+    const saveRes = await dataService.save(
+      makeReq({
+        method: "save",
+        args: [{ datasetId: "obj1", data: payload }],
+      }),
+    );
+    expect(saveRes.ok).toBe(true);
+    expect(store.meta.get("obj1")?.rowCount).toBe(1);
+
+    const res = await dataService.getPage(
+      makeReq({
+        method: "getPage",
+        args: [{ datasetId: "obj1", offset: 0, limit: 10 }],
+      }),
+    );
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.result.total).toBe(1);
+      expect(res.result.rows).toEqual([payload]);
+    }
   });
 
   it("clearAll wipes rows, meta, legacy dataset:* keys, and manifest", async () => {
