@@ -80,6 +80,28 @@ export function DataTableViewOptions<TData>({
 }: {
   table: Table<TData>;
 }) {
+  const hideableColumns = table
+    .getAllColumns()
+    .filter(
+      (column) =>
+        typeof column.accessorFn !== "undefined" && column.getCanHide(),
+    );
+
+  const allVisible =
+    hideableColumns.length > 0 &&
+    hideableColumns.every((c) => c.getIsVisible());
+  const someVisible = hideableColumns.some((c) => c.getIsVisible());
+
+  const selectAllColumns = (visible: boolean) => {
+    table.setColumnVisibility((prev) => {
+      const next = { ...prev };
+      for (const col of hideableColumns) {
+        next[col.id] = visible;
+      }
+      return next;
+    });
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -95,24 +117,33 @@ export function DataTableViewOptions<TData>({
       <DropdownMenuContent align="end" className="w-[150px]">
         <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {table
-          .getAllColumns()
-          .filter(
-            (column) =>
-              typeof column.accessorFn !== "undefined" && column.getCanHide()
-          )
-          .map((column) => {
-            return (
-              <DropdownMenuCheckboxItem
-                key={column.id}
-                className="capitalize"
-                checked={column.getIsVisible()}
-                onCheckedChange={(value) => column.toggleVisibility(!!value)}
-              >
-                {column.id}
-              </DropdownMenuCheckboxItem>
-            );
-          })}
+        {hideableColumns.length > 0 ? (
+          <>
+            <DropdownMenuCheckboxItem
+              checked={
+                allVisible ? true : someVisible ? "indeterminate" : false
+              }
+              onCheckedChange={(value) => selectAllColumns(!!value)}
+              onSelect={(e) => e.preventDefault()}
+            >
+              All columns
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuSeparator />
+          </>
+        ) : null}
+        {hideableColumns.map((column) => {
+          return (
+            <DropdownMenuCheckboxItem
+              key={column.id}
+              className="capitalize"
+              checked={column.getIsVisible()}
+              onCheckedChange={(value) => column.toggleVisibility(!!value)}
+              onSelect={(e) => e.preventDefault()}
+            >
+              {column.id}
+            </DropdownMenuCheckboxItem>
+          );
+        })}
       </DropdownMenuContent>
     </DropdownMenu>
   );

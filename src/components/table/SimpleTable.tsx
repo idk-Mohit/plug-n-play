@@ -272,6 +272,10 @@ export function DataTable<TData extends AnyRecord, TValue = unknown>(
   const showPagedBody = isPaged && rowCount > 0;
   const showDenseBody = !isPaged && rows.length > 0;
 
+  /** Match header column count; paged rows used to iterate `effectiveColumns` and ignored visibility. */
+  const visibleFlatColumns = table.getVisibleFlatColumns();
+  const visibleColSpan = Math.max(1, visibleFlatColumns.length);
+
   return (
     <div className="overflow-hidden rounded-md border bg-secondary/30">
       <DataTableViewOptions table={table} />
@@ -309,7 +313,7 @@ export function DataTable<TData extends AnyRecord, TValue = unknown>(
                 {paddingTop > 0 && (
                   <TableRow>
                     <TableCell
-                      colSpan={effectiveColumns.length || 1}
+                      colSpan={visibleColSpan}
                       style={{ height: paddingTop }}
                     />
                   </TableRow>
@@ -323,10 +327,10 @@ export function DataTable<TData extends AnyRecord, TValue = unknown>(
                         data-index={vi.index}
                         style={{ height: vi.size }}
                       >
-                        {effectiveColumns.map((col) => (
+                        {visibleFlatColumns.map((tc) => (
                           <TableCell
-                            key={col.id}
-                            style={{ width: col.size ?? 160 }}
+                            key={tc.id}
+                            style={{ width: tc.getSize() }}
                             className="truncate"
                           >
                             <div className="h-4 w-full max-w-[10rem] rounded bg-muted animate-pulse" />
@@ -342,7 +346,8 @@ export function DataTable<TData extends AnyRecord, TValue = unknown>(
                       data-index={vi.index}
                       style={{ height: vi.size }}
                     >
-                      {effectiveColumns.map((col) => {
+                      {visibleFlatColumns.map((tc) => {
+                        const col = tc.columnDef as ColumnDef<TData, TValue>;
                         const accessor = columnAccessorKey(col);
                         const raw = rowData[accessor];
                         const title = isPrimitive(raw)
@@ -350,8 +355,8 @@ export function DataTable<TData extends AnyRecord, TValue = unknown>(
                           : undefined;
                         return (
                           <TableCell
-                            key={col.id}
-                            style={{ width: col.size ?? 160 }}
+                            key={tc.id}
+                            style={{ width: tc.getSize() }}
                             className="truncate"
                             title={title}
                           >
@@ -369,7 +374,7 @@ export function DataTable<TData extends AnyRecord, TValue = unknown>(
                 {paddingBottom > 0 && (
                   <TableRow>
                     <TableCell
-                      colSpan={effectiveColumns.length || 1}
+                      colSpan={visibleColSpan}
                       style={{ height: paddingBottom }}
                     />
                   </TableRow>
@@ -380,7 +385,7 @@ export function DataTable<TData extends AnyRecord, TValue = unknown>(
                 {paddingTop > 0 && (
                   <TableRow>
                     <TableCell
-                      colSpan={effectiveColumns.length || 1}
+                      colSpan={visibleColSpan}
                       style={{ height: paddingTop }}
                     />
                   </TableRow>
@@ -419,7 +424,7 @@ export function DataTable<TData extends AnyRecord, TValue = unknown>(
                 {paddingBottom > 0 && (
                   <TableRow>
                     <TableCell
-                      colSpan={effectiveColumns.length || 1}
+                      colSpan={visibleColSpan}
                       style={{ height: paddingBottom }}
                     />
                   </TableRow>
@@ -428,7 +433,7 @@ export function DataTable<TData extends AnyRecord, TValue = unknown>(
             ) : loading ? (
               <TableRow>
                 <TableCell
-                  colSpan={effectiveColumns.length || 1}
+                  colSpan={visibleColSpan}
                   className="!p-0 h-[400px] align-center"
                 >
                   <div className="flex justify-center items-center h-full w-full">
@@ -439,7 +444,7 @@ export function DataTable<TData extends AnyRecord, TValue = unknown>(
             ) : (
               <TableRow>
                 <TableCell
-                  colSpan={effectiveColumns.length || 1}
+                  colSpan={visibleColSpan}
                   className="h-24 text-center"
                 >
                   No results.
