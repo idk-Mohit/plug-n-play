@@ -6,22 +6,43 @@ This repo is **Plug & Play**: a performance-first dashboard + charting engine bu
 
 - `README.md`: product vision + goals
 - **`docs/UI_THEME.md`**: compact dashboard UI theme (shadcn + Tailwind + drawer patterns) — **read before building or polishing UI**
+- **`docs/KNOWLEDGE_MAP.md`**: Graphify setup, **`pnpm graphify:update`** workflow, and `graphify-out/` — **read before broad codebase exploration**
 - `src/README.md`: folder map and core principles
 - `src/core/`: infrastructure (RPC, storage, data-engine)
 - `src/state/`: Jotai atoms + UI/data state
 - `src/d3-core/`: charting engine (scales, axes, renderer, charts)
 - `src/compute/` + `src/engine/`: heavy compute and worker plumbing
+- `SECURITY.md`: security & privacy posture (local-first, no telemetry, supply-chain policy)
 
 ## Local commands
 
 - `pnpm dev`: run the app
 - `pnpm lint`: lint
 - `pnpm build`: typecheck + build
+- `pnpm test`: vitest
+- **`pnpm graphify:update`**: refresh code knowledge graph → `graphify-out/` + `cache/` (no API key)
+- **`pnpm graphify:query -- "question"`**: query `graphify-out/graph.json`
 - **Parallel branches:** `docs/GIT_WORKTREES.md` — `pnpm worktree:add -- <branch>` (defaults to branching from **`dev`**; interactive prompt or `--from-current` / `--base`)
+
+## Cursor rules (the strict guardrails)
+
+Rules in `.cursor/rules/` are loaded automatically by Cursor. The numbered series:
+
+- **`00-project-context`** (always) — stack + navigation
+- **`10-react-typescript-standards`** — `src/**/*.{ts,tsx}`
+- **`20-state-jotai`** — `src/state/**`
+- **`30-d3-core`** — `src/d3-core/**`
+- **`40-performance-guardrails`** — `src/**/*.{ts,tsx}`
+- **`50-security-privacy`** (always) — no telemetry, no secrets, treat inputs as hostile
+- **`55-dependency-policy`** (always) — pinned exact versions, supply-chain hygiene (post Shai-Hulud)
+- **`60-frontend-quality`** — accessibility, motion, content, anti-AI-slop aesthetics (Vercel WIG + frontend-design)
+- **`70-react-vite-performance`** — Vite-only subset of Vercel React best practices
+- **`80-data-handling`** — RPC contracts, worker boundary, storage discipline
+- **`graphify`** (always) — query `graphify-out/graph.json` before grepping; see `docs/KNOWLEDGE_MAP.md`
 
 ## Optional agent skills (repo-local)
 
-Task-specific playbooks live in `.cursor/skills/*/SKILL.md` (e.g. frontend UI, system design, React patterns, performance). Stack truth stays here and in `.cursor/rules/`; skills add situational depth the model can apply when relevant.
+Task-specific playbooks live in `.cursor/skills/*/SKILL.md` (e.g. **graphify**, frontend UI, system design, React patterns, performance). Stack truth stays here and in `.cursor/rules/`; skills add situational depth the model can apply when relevant.
 
 ## Project conventions (high-signal)
 
@@ -30,6 +51,8 @@ Task-specific playbooks live in `.cursor/skills/*/SKILL.md` (e.g. frontend UI, s
 - **State**: prefer fine-grained Jotai atoms; avoid “god” atoms that invalidate large subtrees.
 - **Performance**: avoid per-render allocations in hot paths (renderers, chart transforms, table virtualization).
 - **Heavy compute**: keep it out of React render; consider `src/compute/` and workers in `src/engine/`.
+- **Privacy by default**: no telemetry, no external network calls without explicit opt-in; user data never leaves the browser (see `SECURITY.md`).
+- **Dependencies pinned exactly**: `.npmrc` enforces `save-exact=true`. No `^` or `~` in `package.json`. See `.cursor/rules/55-dependency-policy.mdc`.
 
 ## What “done” looks like for changes
 

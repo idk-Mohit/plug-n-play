@@ -1,0 +1,23 @@
+# Graphify ignore — same syntax as .gitignore
+# https://github.com/safishamsi/graphify
+#
+# Build artifacts and deps only. Source code + docs under src/ and docs/ are indexed.
+# Do not ignore graphify-out/cache/ here — cache is output, not input.
+
+node_modules/
+.pnpm-store/
+dist/
+dist-ssr/
+.worktrees/
+public/
+
+# Binary / font assets (not useful in the graph)
+*.woff
+*.woff2
+*.ttf
+*.ico
+
+# Lockfiles (structure lives in package.json)
+pnpm-lock.yaml
+package-lock.json
+yarn.lock

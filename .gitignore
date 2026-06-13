@@ -8,6 +8,7 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
+.pnpm-store
 
 # Git worktrees (see docs/GIT_WORKTREES.md)
 .worktrees/
@@ -15,6 +16,9 @@ node_modules
 dist
 dist-ssr
 *.local
+
+# Graphify (https://github.com/safishamsi/graphify) — local knowledge graph; regenerate with pnpm graphify:update
+graphify-out/
 
 # Editor directories and files
 .vscode/*

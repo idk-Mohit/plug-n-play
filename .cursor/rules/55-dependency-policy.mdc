@@ -1,0 +1,46 @@
+---
+description: Dependency hygiene & supply-chain policy
+alwaysApply: true
+---
+
+# Dependency policy (always)
+
+Tightened after the **Mini Shai-Hulud** npm supply-chain campaign (TeamPCP, May–Jun 2026). Reference: [`SECURITY.md`](../../SECURITY.md).
+
+## Hard rules
+
+- **All dependency versions are pinned exactly.** No `^`, no `~` in `package.json`. `.npmrc` enforces `save-exact=true`.
+- **Lockfile is sacred.** Never hand-edit `pnpm-lock.yaml`. Always commit it alongside `package.json` changes.
+- **Pinned exactly means pinned exactly.** Upgrade by `pnpm add pkg@<exact-version>`, never by range bump.
+
+## Before adding any dependency
+
+1. Does the standard library or an existing dep already do this? If yes, don't add.
+2. Check weekly downloads, last publish date, and maintainer track record on npm.
+3. Open the package's `package.json` — does it have `preinstall` / `postinstall` / `install` lifecycle scripts? If yes:
+   - Read the script. Understand what it executes.
+   - If suspicious or unnecessary, add to `pnpm.ignoredBuiltDependencies` or reject the dep.
+4. Inspect the published tarball for unexpectedly large minified JS files (a Mini Shai-Hulud tell).
+5. Run `pnpm audit` after install; address `high` / `critical` advisories before merge.
+6. Open a separate PR for the dep addition — never bundle with feature work.
+
+## Reject
+
+- Packages with malicious or opaque lifecycle scripts.
+- Heavy "kitchen sink" libs when a focused alternative exists.
+- Anything a competent dev could write in <50 lines of TypeScript.
+- Typosquats and name-collision packages — verify the org and exact name against the official source (homepage, GitHub).
+
+## Upgrades
+
+- Read the changelog. Skim the diff for surprising new behavior.
+- Run `pnpm lint`, `pnpm build`, `pnpm test` before committing.
+- Pin to the new exact version. Don't open the range.
+- Dep upgrades go in their own PR titled `deps: bump <pkg> to <version>`.
+
+## Known-bad indicators (red flags)
+
+- `preinstall` running obfuscated JS or downloading payloads.
+- Single-line, 100KB+ minified files where source is "simple."
+- Strings like `bypass_2fa`, references to `getsession`, `t.m-kosche`, `83.142.209.x`, or `IfYouInvalidateThisToken...`.
+- Packages from `@antv/*`, `@tanstack/router-*`, `@redhat/*`, `@uipath/*` at versions published during the Shai-Hulud waves — verify against advisories before pinning.
