@@ -23,6 +23,8 @@ const routes: Record<string, (req: RpcRequest) => Promise<unknown>> = {
   "Data.deleteDataset": dataService.deleteDataset,
   "Data.getManifest": dataService.getManifest,
   "Data.saveManifest": dataService.saveManifest,
+  "Data.getDashboardManifest": dataService.getDashboardManifest,
+  "Data.saveDashboardManifest": dataService.saveDashboardManifest,
   "Data.listDatasetKeys": dataService.listDatasetKeys,
   "Data.clearAll": dataService.clearAll,
 };

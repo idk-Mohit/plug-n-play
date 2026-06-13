@@ -30,6 +30,8 @@ export interface ViewState {
   meta?: {
     /** Dataset ID for dataset-specific views */
     datasetId?: string;
+    /** Active dashboard when `view` is `dashboard` (stored in `#dashboard?dashboardId=…`). */
+    dashboardId?: string;
     /** Active tab within a view */
     tab?: string;
     /** Additional view-specific parameters */

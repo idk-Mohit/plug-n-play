@@ -1,26 +1,60 @@
 // path: src/hooks/useViewSync.ts
 import { useAtom } from "jotai";
-import { activeViewAtom, type ViewName } from "@/state/ui/view";
-import { useEffect } from "react";
+import { activeViewAtom, type ViewState } from "@/state/ui/view";
+import { parseViewFromHash } from "@/state/ui/view-hash";
+import { useEffect, useRef } from "react";
+
+function buildHash(activeView: ViewState): string {
+  const params = new URLSearchParams();
+  if (activeView.meta) {
+    for (const [key, value] of Object.entries(activeView.meta)) {
+      if (value === undefined || value === null) continue;
+      params.set(key, String(value));
+    }
+  }
+  const query = params.toString();
+  return `#${activeView.view}${query ? `?${query}` : ""}`;
+}
 
 export function useViewSync() {
   const [activeView, setActiveView] = useAtom(activeViewAtom);
+  const skipNextPush = useRef(false);
+  const lastPushedView = useRef<ViewState["view"] | null>(null);
 
-  // when atom changes → update URL
   useEffect(() => {
-    const params = new URLSearchParams(
-      activeView.meta as unknown as URLSearchParams
-    );
-    const hash = `${activeView.view}${params.toString() ? "?" + params : ""}`;
-    history.pushState(activeView, "", "#" + hash);
+    const fromHash = parseViewFromHash(location.hash);
+    if (!fromHash) return;
+    skipNextPush.current = true;
+    setActiveView(fromHash);
+  }, [setActiveView]);
+
+  useEffect(() => {
+    if (skipNextPush.current) {
+      skipNextPush.current = false;
+      return;
+    }
+    const next = buildHash(activeView);
+    if (location.hash === next) return;
+
+    const viewChanged =
+      lastPushedView.current !== null &&
+      lastPushedView.current !== activeView.view;
+    lastPushedView.current = activeView.view;
+
+    if (viewChanged) {
+      history.pushState(activeView, "", next);
+    } else {
+      history.replaceState(activeView, "", next);
+    }
   }, [activeView]);
 
-  // when URL changes → update atom
   useEffect(() => {
     const handlePop = () => {
-      const [view, query] = location.hash.slice(1).split("?");
-      const meta = Object.fromEntries(new URLSearchParams(query));
-      setActiveView({ view: view as ViewName, meta });
+      const fromHash = parseViewFromHash(location.hash);
+      if (!fromHash) return;
+      skipNextPush.current = true;
+      lastPushedView.current = fromHash.view;
+      setActiveView(fromHash);
     };
     window.addEventListener("popstate", handlePop);
     window.addEventListener("hashchange", handlePop);
@@ -28,5 +62,5 @@ export function useViewSync() {
       window.removeEventListener("popstate", handlePop);
       window.removeEventListener("hashchange", handlePop);
     };
-  }, []);
+  }, [setActiveView]);
 }

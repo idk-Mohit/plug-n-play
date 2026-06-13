@@ -1,6 +1,7 @@
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "../ui/button";
+import { AddDashboardButton } from "@/components/dashboard/CreateDashboardDialog";
 import { useAtomValue } from "jotai";
 import { breadcrumbsAtom } from "@/state/ui/breadcrumbs";
 
@@ -18,6 +19,7 @@ export function SiteHeader() {
           {breadcrumbs.map((b) => b.label).join(" / ")}
         </h1>
         <div className="ml-auto flex items-center gap-2">
+          <AddDashboardButton />
           <Button variant="ghost" asChild size="sm" className="hidden sm:flex">
             <a
               href="https://github.com/idk-Mohit"

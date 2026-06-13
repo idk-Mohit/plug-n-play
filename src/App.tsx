@@ -9,6 +9,17 @@ import { useStore } from "jotai/react";
 import { useCallback, useEffect, useRef } from "react";
 import { getEngineRpc } from "@/core/rpc/engineSingleton";
 import {
+  activeDashboardIdAtom,
+  createDefaultMainDashboard,
+  dashboardManifestHydratedAtom,
+  findDashboardById,
+  persistedDashboardsAtom,
+} from "@/state/data/dashboard";
+import {
+  fetchDashboardManifestFromIdb,
+  mergePersistedDashboardsWithIndexedDb,
+} from "@/state/data/dashboard-storage";
+import {
   activeDatasetAtom,
   persistedDatasetsAtom,
   type DatasetMeta,
@@ -25,6 +36,8 @@ import {
   createDefaultSampleDatasetMeta,
   DEFAULT_SAMPLE_DATASET_ID,
 } from "@/state/data/defaultSampleDataset";
+import { activeViewAtom } from "@/state/ui/view";
+import { parseViewFromHash } from "@/state/ui/view-hash";
 import {
   hydrateHistoryFromIdb,
   normalizeSamplerIntervalMs,
@@ -66,6 +79,9 @@ function App() {
   const store = useStore();
   const setPersistedDatasets = useSetAtom(persistedDatasetsAtom);
   const setActiveDataset = useSetAtom(activeDatasetAtom);
+  const setPersistedDashboards = useSetAtom(persistedDashboardsAtom);
+  const setActiveDashboardId = useSetAtom(activeDashboardIdAtom);
+  const setDashboardManifestHydrated = useSetAtom(dashboardManifestHydratedAtom);
   const { open: openConfirmDialog, close: closeConfirmDialog } =
     useConfirmDialog();
   const recoveryPromptedRef = useRef(false);
@@ -166,6 +182,41 @@ function App() {
     setActiveDataset,
     setPersistedDatasets,
   ]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const fromIdb = await fetchDashboardManifestFromIdb();
+        if (cancelled) return;
+        const prev = store.get(persistedDashboardsAtom);
+        const merged = mergePersistedDashboardsWithIndexedDb(prev, fromIdb);
+        const list =
+          merged.length > 0 ? merged : [createDefaultMainDashboard()];
+        setPersistedDashboards(list);
+        const storedActiveId = store.get(activeDashboardIdAtom);
+        const fromHash = parseViewFromHash(location.hash);
+        const hashDashboardId = fromHash?.meta?.dashboardId;
+        const storedView = store.get(activeViewAtom);
+        const metaDashboardId = storedView.meta?.dashboardId;
+        const preferredId = hashDashboardId ?? metaDashboardId ?? storedActiveId;
+
+        if (preferredId && findDashboardById(list, preferredId)) {
+          setActiveDashboardId(preferredId);
+        } else if (
+          !storedActiveId ||
+          !findDashboardById(list, storedActiveId)
+        ) {
+          setActiveDashboardId(list[0]!.id);
+        }
+      } finally {
+        if (!cancelled) setDashboardManifestHydrated(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [setActiveDashboardId, setDashboardManifestHydrated, setPersistedDashboards, store]);
 
   useEffect(() => {
     startSystemSampler(

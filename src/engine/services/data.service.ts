@@ -39,9 +39,16 @@ import { applyFiltersToRow } from "@/engine/services/filter.utils";
 import { planQuery } from "@/engine/query.planner";
 
 import { ok, err } from "@/engine/rpcResponse";
+import {
+  isDashboardManifest,
+  parseDashboardManifest,
+} from "@/core/rpc/dashboard-record.guard";
 
 /** Must match {@link DATASETS_MANIFEST_IDB_KEY} in dataset-storage (avoid importing Jotai into worker). */
 const DATASETS_MANIFEST_IDB_KEY = "datasources-manifest";
+
+/** Must match {@link DASHBOARDS_MANIFEST_IDB_KEY} in dashboard-storage. */
+const DASHBOARDS_MANIFEST_IDB_KEY = "dashboards-manifest";
 
 const META_VERSION = 1 as const;
 
@@ -439,6 +446,36 @@ export async function saveManifest(req: RpcRequest) {
   }
 }
 
+/** Worker RPC: read validated dashboard list from IndexedDB (`dashboards-manifest`). */
+export async function getDashboardManifest(req: RpcRequest) {
+  try {
+    const v = await idbGet<unknown>(DASHBOARDS_MANIFEST_IDB_KEY);
+    return ok(req.id, parseDashboardManifest(v));
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    return err(req.id, "E_INTERNAL", message);
+  }
+}
+
+/** Worker RPC: persist dashboard list to IndexedDB; main thread mirrors via dashboard-storage. */
+export async function saveDashboardManifest(req: RpcRequest) {
+  const manifest = req.args?.[0];
+  if (!isDashboardManifest(manifest)) {
+    return err(
+      req.id,
+      "E_BAD_REQUEST",
+      "saveDashboardManifest: invalid dashboard manifest",
+    );
+  }
+  try {
+    await idbSave(DASHBOARDS_MANIFEST_IDB_KEY, manifest);
+    return ok(req.id, true);
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    return err(req.id, "E_INTERNAL", message);
+  }
+}
+
 export async function listDatasetKeys(req: RpcRequest) {
   try {
     const keys = await idbListDatasetKeys();
@@ -454,6 +491,7 @@ export async function clearAll(req: RpcRequest) {
     await idbClearRowsAndMeta();
     await idbDeleteAllLegacyDatasetPrefixedKeys();
     await idbDelete(DATASETS_MANIFEST_IDB_KEY);
+    await idbDelete(DASHBOARDS_MANIFEST_IDB_KEY);
     return ok(req.id, true);
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);

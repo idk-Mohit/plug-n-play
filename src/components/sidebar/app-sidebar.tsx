@@ -8,6 +8,7 @@ import {
 } from "@tabler/icons-react";
 
 import { NavMain, type NavMainItem } from "./main-sidebar";
+import { DashboardSwitcherMenu } from "@/components/dashboard/DashboardSwitcherMenu";
 
 import {
   Sidebar,
@@ -21,10 +22,7 @@ import {
 } from "@/components/ui/sidebar";
 import { computeHealth } from "@/core/system/health";
 import { cn } from "@/lib/utils";
-import {
-  activeDatasetAtom,
-  persistedDatasetsAtom,
-} from "@/state/data/dataset";
+import { persistedDatasetsAtom } from "@/state/data/dataset";
 import { useAtomValue, useSetAtom } from "jotai";
 import { sidebarTransitionAtom } from "@/state/ui/layout";
 import {
@@ -32,6 +30,8 @@ import {
   samplerEnabledAtom,
 } from "@/state/system/atoms";
 import { activeViewAtom } from "@/state/ui/view";
+import { useDashboardMutations } from "@/hooks/useDashboardMutations";
+import { DEFAULT_DASHBOARD_ID } from "@/state/data/dashboard";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const sidebarRef = React.useRef<HTMLDivElement>(null);
@@ -44,11 +44,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const setSamplerOn = useSetAtom(samplerEnabledAtom);
   const live = useAtomValue(liveSampleAtom);
   const health = computeHealth(live);
-  const activeDataset = useAtomValue(activeDatasetAtom);
   const persistedDatasets = useAtomValue(persistedDatasetsAtom);
+  const {
+    dashboards,
+    activeId,
+    activeDashboard,
+    switchDashboard,
+  } = useDashboardMutations();
 
   const navMain = React.useMemo((): NavMainItem[] => {
-    const datasetSubtitle = activeDataset?.name ?? "No dataset selected";
     const libraryCount = persistedDatasets.length;
 
     return [
@@ -56,9 +60,19 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         title: "Dashboards",
         url: "#",
         icon: IconLayoutDashboard,
-        description: datasetSubtitle,
-        onClick: () => setView({ view: "dashboard", meta: undefined }),
+        description: activeDashboard?.name ?? "No dashboard",
+        onClick: () =>
+          switchDashboard(
+            activeId ?? activeDashboard?.id ?? DEFAULT_DASHBOARD_ID,
+          ),
         active: view === "dashboard",
+        trailing: (
+          <DashboardSwitcherMenu
+            dashboards={dashboards}
+            activeId={activeId}
+            onSwitch={switchDashboard}
+          />
+        ),
       },
       {
         title: "Datasources",
@@ -133,13 +147,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       },
     ];
   }, [
-    activeDataset?.name,
+    activeDashboard?.id,
+    activeDashboard?.name,
+    activeId,
+    dashboards,
     health,
     live,
     persistedDatasets.length,
     samplerOn,
     setSamplerOn,
     setView,
+    switchDashboard,
     view,
   ]);
 

@@ -92,6 +92,22 @@ export type DataDeleteArgs = string;
 /** Manifest backup in IndexedDB (`datasources-manifest`). */
 export type DataSaveManifestArgs = unknown[];
 
+/** Predefined dashboard starter (layout applied in Phase 1b). */
+export type DashboardTemplateId = "blank" | "chart-table" | "analytics" | "copy";
+
+/** Dashboard metadata persisted in LS + `dashboards-manifest` IDB backup. Layout is Phase 1b. */
+export type DashboardRecord = {
+  id: string;
+  name: string;
+  templateId: DashboardTemplateId;
+  copiedFromId?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+/** Manifest backup in IndexedDB (`dashboards-manifest`). */
+export type DataSaveDashboardManifestArgs = DashboardRecord[];
+
 export type DataGetAggregatedResult = {
   points: timeseriesdata[];
 };

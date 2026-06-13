@@ -28,8 +28,8 @@ Build the single-user dashboard foundation before sharing, collaboration, or ren
 
 | Order | Slice | Why now |
 |-------|-------|---------|
-| **1** | **1a** Multi-dashboard management | Root entity; everything else hangs off a dashboard record. |
-| **2** | **1b** Dynamic chart layout | Panels need a dashboard container before layout is meaningful. |
+| **1** | **1a** Multi-dashboard (partial) | Create/list/switch landed; next: rename/delete, then **1b** layout. |
+| **2** | **1b** Dynamic chart layout | Panels need per-dashboard layout records. |
 | **3** | **1c** Per-chart data slice config | Field mapping (x/y columns), transforms — same dataset, different columns per panel. |
 | **4** | **1d-ui** Filter panel mount | Wire `FilterPanel` with `vizId` per chart/table panel. |
 | **5** | **1h** Dashboard persistence & export | Auto-save + `.pnp` export; serializer reused in Phase 2. |
@@ -37,7 +37,7 @@ Build the single-user dashboard foundation before sharing, collaboration, or ren
 
 **Defer until Phase 1 core is solid:** Phase 2 (share URL), Phase 3 (P2P), Phase 4 (Canvas/WebGL/OPFS), Phase 5 (connectors).
 
-**Next action:** write `docs/plans/phase-1a-multi-dashboard.md`, then implement **1a only**.
+**Next action:** write `docs/plans/phase-1b-dynamic-layout.md`, then implement **1b only**.
 
 ---
 
@@ -61,7 +61,7 @@ Build the single-user dashboard foundation before sharing, collaboration, or ren
 
 | Area | Gap |
 |------|-----|
-| Dashboard management | One implicit dashboard; no create/rename/delete/switch |
+| Dashboard management | 🟡 **Partial** — create/list/switch + manifest persistence; layout per dashboard pending (1b) |
 | Chart layout | Fixed layout; no add/remove/resize charts per dashboard |
 | Chart-to-dataset binding | Global `activeDatasetAtom` — **one dataset per dashboard** (correct). Each viz slices via per-chart viewport + `vizFiltersAtomFamily`. |
 | Filter system | 🟡 **Partial** — per-viz filters + worker filtering; `FilterPanel` needs `vizId`; not mounted on Home. Optional dashboard-wide filters reserved. |
@@ -77,24 +77,29 @@ Build the single-user dashboard foundation before sharing, collaboration, or ren
 
 > **Goal:** A proper dashboard product that one person can use every day. Every feature here is independently useful and also required before Phase 2 (sharing) makes sense.
 
-### 1a. Multi-dashboard management ⬜
+### 1a. Multi-dashboard management 🟡
 
 Users can create, name, rename, delete, and switch between dashboards. Each dashboard is an independent layout.
 
-**What to build**
-- `Dashboard` entity persisted in IndexedDB via the engine worker:
-  - New RPC methods: `Data.saveDashboard`, `Data.loadDashboard`, `Data.listDashboards`, `Data.deleteDashboard`
-  - Typed in `data-contract.ts`
-- `dashboardsAtom` (Jotai) — list of all saved dashboards
-- `activeDashboardAtom` — the current dashboard being viewed/edited
-- Sidebar: dashboard list, new dashboard button, rename/delete actions
-- Route per dashboard (URL fragment: `#/dashboard/:id`)
+**Done (UI slice — create / list / switch)**
+- ✅ `DashboardRecord` + `dashboards-manifest` IDB persistence (mirror dataset manifest pattern)
+- ✅ `persistedDashboardsAtom`, `activeDashboardIdAtom`, create/clone/switch helpers
+- ✅ GitBook-style **Create dashboard** dialog (blank / predefined / copy existing)
+- ✅ Header **Add Dashboard** + sidebar **Dashboards** dropdown (scroll after ~5 rows)
+- ✅ Default `Main` dashboard; hydrate from worker on app start
+- ✅ Breadcrumb shows active dashboard name
 
-**Key files**
-- `src/core/rpc/data-contract.ts` — add `DashboardRecord` type
-- `src/engine/services/dashboard.service.ts` — new
-- `src/state/data/dashboard.ts` — new Jotai atoms
-- `src/containers/dashboard/` — update to load from atom
+**Remaining**
+- ⬜ Rename / delete dashboard UI
+- ⬜ Per-dashboard layout persistence (1b)
+
+**Done (URL)**
+- ✅ `#dashboard?dashboardId=…` hash param syncs with `activeDashboardIdAtom`
+
+**Key files (landed)**
+- `src/state/data/dashboard.ts`, `dashboard-storage.ts`, `dashboard-templates.ts`
+- `src/components/dashboard/*`
+- `src/engine/services/data.service.ts` — dashboard manifest RPC
 
 ### 1b. Dynamic chart layout ⬜
 
@@ -320,7 +325,7 @@ Connectors pull you toward being a backend product. Build after the base is soli
 Start Phase 1 core top-to-bottom. Engine slices **1f/1g** were pulled forward early; UI and dashboard work still follow **1a → 1b → 1c**.
 
 ```
-⬜ 1a dashboard management          ← NEXT
+⬜ 1a dashboard management          ← partial (create/list/switch done)
  └─ ⬜ 1b dynamic layout
      └─ ⬜ 1c per-chart data slice (viewport + filters done; field mapping pending)
          ├─ 🟡 1d filter panel (engine + per-viz filters done; UI mount pending)

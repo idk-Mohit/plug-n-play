@@ -2,6 +2,8 @@ import { activeViewAtom } from "@/state/ui/view";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useSetAtom } from "jotai";
+import { DEFAULT_DASHBOARD_ID } from "@/state/data/dashboard";
+import { dashboardViewState } from "@/state/ui/view-hash";
 
 export default function NotFound() {
   const setView = useSetAtom(activeViewAtom);
@@ -72,7 +74,7 @@ export default function NotFound() {
               </Button>
 
               {/* If using react-router, you can wrap with <Link to="/"> using asChild */}
-              <Button onClick={() => setView({ view: "dashboard" })}>
+              <Button onClick={() => setView(dashboardViewState(DEFAULT_DASHBOARD_ID))}>
                 Go to Home
               </Button>
 

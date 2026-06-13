@@ -7,6 +7,12 @@ import type { BreadcrumbItem } from "@/state/ui/breadcrumbs";
 import { ErrorBoundary } from "./ErrorBoundary";
 import NotFound from "./404";
 import { useViewSync } from "@/hooks/useViewAsync";
+import { useDashboardViewSync } from "@/hooks/useDashboardViewSync";
+import {
+  activeDashboardIdAtom,
+  persistedDashboardsAtom,
+  resolveActiveDashboard,
+} from "@/state/data/dashboard";
 const VisualsView = lazy(() => import("@/containers/visualizations/Visuals"));
 const DatasourceView = lazy(
   () => import("@/containers/datasources/Datasources")
@@ -27,7 +33,10 @@ const DatasetsView = lazy(() => import("@/containers/dataset/Dataset"));
  */
 export default function ViewRenderer() {
   useViewSync();
+  useDashboardViewSync();
   const view = useAtomValue(activeViewAtom).view;
+  const dashboards = useAtomValue(persistedDashboardsAtom);
+  const activeDashboardId = useAtomValue(activeDashboardIdAtom);
   const setBreadcrumbs = useSetAtom(setBreadcrumbsAtom);
 
   const Component = {
@@ -41,10 +50,13 @@ export default function ViewRenderer() {
 
   useEffect(() => {
     const label =
-      String(view).charAt(0).toUpperCase() + String(view).slice(1);
+      view === "dashboard"
+        ? (resolveActiveDashboard(dashboards, activeDashboardId)?.name ??
+          "Dashboard")
+        : String(view).charAt(0).toUpperCase() + String(view).slice(1);
     const trail: BreadcrumbItem[] = [{ label }];
     setBreadcrumbs(trail);
-  }, [view, setBreadcrumbs]);
+  }, [view, dashboards, activeDashboardId, setBreadcrumbs]);
 
   return (
     <ErrorBoundary>
