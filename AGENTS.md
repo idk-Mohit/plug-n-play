@@ -6,7 +6,8 @@ This repo is **Plug & Play**: a performance-first dashboard + charting engine bu
 
 - `README.md`: product vision + goals
 - **`docs/UI_THEME.md`**: compact dashboard UI theme (shadcn + Tailwind + drawer patterns) — **read before building or polishing UI**
-- **`docs/KNOWLEDGE_MAP.md`**: Graphify setup, **`pnpm graphify:update`** workflow, and `graphify-out/` — **read before broad codebase exploration**
+- **`docs/ROADMAP.md`**: product phases and what is planned vs landed — **read before multi-step features**
+- **`docs/plans/`**: one plan file per PR-sized slice — **write before coding**
 - `src/README.md`: folder map and core principles
 - `src/core/`: infrastructure (RPC, storage, data-engine)
 - `src/state/`: Jotai atoms + UI/data state
@@ -59,4 +60,18 @@ Task-specific playbooks live in `.cursor/skills/*/SKILL.md` (e.g. **graphify**, 
 - **Type-safe** and passes `pnpm lint` / `pnpm build`
 - **No new render loops** or expensive effects
 - **No unnecessary re-renders** (especially in charts / large lists)
+
+## Incremental delivery (required)
+
+**Never implement multiple roadmap phases or product features in one pass.** Each change should be one focused slice that can be reviewed, tested, and shipped independently.
+
+Before any multi-step feature:
+
+1. Write or update a plan in **`docs/plans/<feature>.md`** (or extend **`docs/ROADMAP.md`** with a link to a sub-plan).
+2. Break work into **single-purpose PR-sized chunks** (e.g. “1d filters engine only”, then “1d filter UI mount”, not both plus dashboards).
+3. **Do not combine** engine plumbing, new UI surfaces, persistence, and collaboration in the same diff.
+4. **Do not mount new UI** (sidebars, rooms, share bars, multi-dashboard chrome) until that slice’s plan explicitly includes UX placement.
+5. After each slice lands, run **`pnpm test`** / **`pnpm build`** before starting the next plan item.
+
+When in doubt: smaller diff, clearer plan, one todo at a time.
 

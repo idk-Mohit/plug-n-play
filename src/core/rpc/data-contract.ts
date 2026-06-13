@@ -8,6 +8,18 @@ import type { timeseriesdata } from "@/types/data.types";
 /** Downsampling strategy for chart windows. */
 export type AggregateMethod = "lttb" | "minMax" | "mean";
 
+/** Filter operators for chart/table queries. */
+export type FilterOp = "eq" | "gt" | "lt" | "between" | "contains";
+
+export type FilterDefinition = {
+  id: string;
+  field: string;
+  op: FilterOp;
+  value: unknown;
+};
+
+export type FilterValueRange = { from: number; to: number };
+
 export type DataDatasetMeta = {
   rowCount: number;
   /** Inclusive domain in epoch ms; nulls if empty or non-time series. */
@@ -29,12 +41,14 @@ export type DataGetRangeArgs = {
   limit?: number;
   /** "asc" | "desc" by time — default asc */
   order?: "asc" | "desc";
+  filters?: FilterDefinition[];
 };
 
 export type DataGetPageArgs = {
   datasetId: string;
   offset: number;
   limit: number;
+  filters?: FilterDefinition[];
 };
 
 export type DataGetAggregatedArgs = {
@@ -43,6 +57,29 @@ export type DataGetAggregatedArgs = {
   toMs: number;
   buckets: number;
   method: AggregateMethod;
+  filters?: FilterDefinition[];
+};
+
+/** Input to the thin query planner (`Data.executeQuery`). */
+export type DataQueryRequest = {
+  datasetId: string;
+  intent: "page" | "range" | "aggregated" | "meta";
+  page?: { offset: number; limit: number };
+  range?: {
+    fromMs: number;
+    toMs: number;
+    order?: "asc" | "desc";
+    limit?: number;
+  };
+  aggregated?: {
+    fromMs: number;
+    toMs: number;
+    buckets: number;
+    method: AggregateMethod;
+  };
+  filters?: FilterDefinition[];
+  priority?: "high" | "normal" | "low";
+  version?: number;
 };
 
 export type DataSaveArgs = {

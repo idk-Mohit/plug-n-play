@@ -2,24 +2,7 @@ import { V, type RpcCancelEnvelope, type RpcRequest } from "@/core/rpc/config/pr
 import { ok, err } from "@/engine/rpcResponse";
 import * as dataService from "@/engine/services/data.service";
 import * as systemService from "@/engine/services/system.service";
-
-/**
- * ------------------------------------------------------------
- * Minimal RPC Worker — easy to read & extend
- * ------------------------------------------------------------
- *
- * Handles RPC-style messages of the form:
- *   { v, id, svc, method, args? }
- *
- * Responds with:
- *   { id, ok: true, result }       // success
- *   { id, ok: false, error: { code, message } }  // failure
- *
- * ------------------------------------------------------------
- */
-
-// ---- Handlers ----
-// Each handler gets a validated RpcRequest and must return a response.
+import { workerTaskQueue } from "@/engine/task-queue";
 
 const routes: Record<string, (req: RpcRequest) => Promise<unknown>> = {
   "System.ping": async (req: RpcRequest) => {
@@ -35,6 +18,7 @@ const routes: Record<string, (req: RpcRequest) => Promise<unknown>> = {
   "Data.getRange": dataService.getRange,
   "Data.getPage": dataService.getPage,
   "Data.getAggregated": dataService.getAggregated,
+  "Data.executeQuery": dataService.executeQuery,
   "Data.save": dataService.save,
   "Data.deleteDataset": dataService.deleteDataset,
   "Data.getManifest": dataService.getManifest,
@@ -43,12 +27,6 @@ const routes: Record<string, (req: RpcRequest) => Promise<unknown>> = {
   "Data.clearAll": dataService.clearAll,
 };
 
-// ---- Validation helpers ----
-
-/**
- * Validate that a payload looks like an RPC request.
- * Returns an object with { valid: boolean, reason?: string }.
- */
 function validateEnvelope(payload: unknown): {
   valid: boolean;
   reason?: string;
@@ -85,7 +63,18 @@ function isCancelEnvelope(x: unknown): x is RpcCancelEnvelope {
   return p.cancel === true && typeof p.id === "string" && p.v === V;
 }
 
-// ---- Worker message handler ----
+function priorityForRoute(key: string): "high" | "normal" | "low" {
+  if (
+    key === "Data.getAggregated" ||
+    key === "Data.getPage" ||
+    key === "Data.getRange" ||
+    key === "Data.executeQuery"
+  ) {
+    return "high";
+  }
+  if (key === "Data.getPreview") return "normal";
+  return "low";
+}
 
 self.onmessage = async (ev: MessageEvent) => {
   const payload = ev.data;
@@ -96,7 +85,6 @@ self.onmessage = async (ev: MessageEvent) => {
     return;
   }
 
-  // Use provided id if available, otherwise generate one.
   const msgId =
     typeof payload === "object" &&
     payload !== null &&
@@ -104,11 +92,10 @@ self.onmessage = async (ev: MessageEvent) => {
       ? payload.id
       : crypto.randomUUID();
 
-  // Validate the RPC envelope
   const { valid, reason } = validateEnvelope(payload);
   if (!valid) {
     self.postMessage(
-      err(msgId, "E_BAD_REQUEST", `Invalid RPC envelope: ${reason}`)
+      err(msgId, "E_BAD_REQUEST", `Invalid RPC envelope: ${reason}`),
     );
     return;
   }
@@ -130,18 +117,22 @@ self.onmessage = async (ev: MessageEvent) => {
   systemService.bumpRouteHit(key);
   const handler = routes[key];
 
-  // If route doesn't exist
   if (!handler) {
     abortControllers.delete(msgId);
     self.postMessage(err(req.id, "E_NOT_FOUND", `Unknown RPC method: ${key}`));
     return;
   }
 
-  // Execute the handler and return the result
-  try {
-    const res = await handler(req);
+  const queueKey = `${key}:${req.id}`;
 
-    // Defensive: if handler returned a raw value, wrap it as ok()
+  try {
+    const res = await workerTaskQueue.enqueue(
+      queueKey,
+      priorityForRoute(key),
+      Date.now(),
+      () => handler(req),
+    );
+
     const r = res as { ok?: unknown };
     if (!res || typeof res !== "object" || typeof r.ok !== "boolean") {
       self.postMessage(ok(req.id, res));
@@ -151,6 +142,9 @@ self.onmessage = async (ev: MessageEvent) => {
     self.postMessage(res);
   } catch (e) {
     if (e instanceof DOMException && e.name === "AbortError") {
+      return;
+    }
+    if (e instanceof Error && e.name === "AbortError") {
       return;
     }
     const message = e instanceof Error ? e.message : String(e);

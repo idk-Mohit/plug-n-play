@@ -10,6 +10,7 @@ import { generateSeries } from "@/compute";
 import { ChartType } from "@/enums/chart.enums";
 import { activeDatasetAtom } from "@/state/data/dataset";
 import { isDefaultSampleDatasetId } from "@/state/data/defaultSampleDataset";
+import { globalFiltersAtom } from "@/state/data/filters";
 import { chartSettingsAtomFamily } from "@/state/ui/chart-setting";
 import { chartViewportAtomFamily } from "@/state/ui/viewport";
 import type { timeseriesdata } from "@/types/data.types";
@@ -35,6 +36,7 @@ const DEBOUNCE_MS = 80;
  */
 export function useDatasetSlice(chartId: string) {
   const active = useAtomValue(activeDatasetAtom);
+  const filters = useAtomValue(globalFiltersAtom);
   const chartType = useAtomValue(chartSettingsAtomFamily(chartId)).type;
   const [viewport, setViewport] = useAtom(chartViewportAtomFamily(chartId));
   const [data, setData] = useState<timeseriesdata[]>([]);
@@ -111,6 +113,7 @@ export function useDatasetSlice(chartId: string) {
               toMs: vp.toMs,
               buckets: vp.buckets,
               method,
+              filters,
             },
           ],
         );
@@ -132,7 +135,7 @@ export function useDatasetSlice(chartId: string) {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [datasetId, chartType, viewport, setViewport]);
+  }, [datasetId, chartType, viewport, setViewport, filters]);
 
   return { data, loading, error, viewport, setViewport };
 }

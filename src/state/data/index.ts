@@ -7,5 +7,6 @@
 
 // Dataset metadata and management
 export * from './dataset';
+export * from './filters';
 
 console.log('Data State initialized');

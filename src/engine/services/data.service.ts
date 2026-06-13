@@ -28,12 +28,15 @@ import type {
   DataGetPageArgs,
   DataGetPreviewArgs,
   DataGetRangeArgs,
+  DataQueryRequest,
   DataSaveArgs,
   DataDatasetMeta,
 } from "@/core/rpc/data-contract";
 import type { RpcRequest } from "@/core/rpc/config/protocol";
 import type { timeseriesdata } from "@/types/data.types";
 import { streamingBucketAggregate, streamingLttb } from "@/engine/aggregations/streaming";
+import { applyFiltersToRow } from "@/engine/services/filter.utils";
+import { planQuery } from "@/engine/query.planner";
 
 import { ok, err } from "@/engine/rpcResponse";
 
@@ -140,6 +143,7 @@ async function* iterTsInRangeAsc(
   fromMs: number,
   toMs: number,
   signal?: AbortSignal,
+  filters?: DataGetRangeArgs["filters"],
 ): AsyncGenerator<timeseriesdata, void, undefined> {
   for await (const payload of idbIterateTimeRangePayloads(
     datasetId,
@@ -148,6 +152,7 @@ async function* iterTsInRangeAsc(
     "next",
     signal,
   )) {
+    if (!applyFiltersToRow(payload, filters)) continue;
     const p = toTimeseriesRow(payload);
     if (p) yield p;
   }
@@ -218,6 +223,7 @@ export async function getRange(req: RpcRequest) {
       dir,
       signal,
     )) {
+      if (!applyFiltersToRow(payload, arg.filters)) continue;
       const p = toTimeseriesRow(payload);
       if (!p) continue;
       const t = Date.parse(String(p.x));
@@ -259,8 +265,11 @@ export async function getPage(req: RpcRequest) {
       limit,
       signal,
     );
+    const rows = arg.filters?.length
+      ? slice.filter((row) => applyFiltersToRow(row, arg.filters))
+      : slice;
     return ok(req.id, {
-      rows: slice,
+      rows,
       total: meta.rowCount,
       offset,
       limit,
@@ -296,7 +305,13 @@ export async function getAggregated(req: RpcRequest) {
     }
 
     const makeIter = () =>
-      iterTsInRangeAsc(arg.datasetId, arg.fromMs, arg.toMs, signal);
+      iterTsInRangeAsc(
+        arg.datasetId,
+        arg.fromMs,
+        arg.toMs,
+        signal,
+        arg.filters,
+      );
 
     let points: timeseriesdata[];
     if (method === "lttb") {
@@ -320,6 +335,35 @@ export async function getAggregated(req: RpcRequest) {
     const message = e instanceof Error ? e.message : String(e);
     return err(req.id, "E_INTERNAL", message);
   }
+}
+
+const queryRouteHandlers: Record<
+  string,
+  (req: RpcRequest) => Promise<unknown>
+> = {
+  "Data.getMeta": getMeta,
+  "Data.getPage": getPage,
+  "Data.getRange": getRange,
+  "Data.getAggregated": getAggregated,
+};
+
+export async function executeQuery(req: RpcRequest) {
+  const request = req.args?.[0] as DataQueryRequest;
+  if (!request || typeof request.datasetId !== "string") {
+    return err(req.id, "E_BAD_REQUEST", "executeQuery: request required");
+  }
+  const plan = planQuery(request);
+  const handler = queryRouteHandlers[plan.route];
+  if (!handler) {
+    return err(req.id, "E_NOT_FOUND", `No handler for ${plan.route}`);
+  }
+  const inner: RpcRequest = {
+    ...req,
+    svc: plan.route.split(".")[0],
+    method: plan.route.split(".")[1],
+    args: plan.args as unknown[],
+  };
+  return handler(inner);
 }
 
 export async function save(req: RpcRequest) {
