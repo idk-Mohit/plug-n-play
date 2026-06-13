@@ -45,6 +45,17 @@ Rules in `.cursor/rules/` are loaded automatically by Cursor. The numbered serie
 
 Task-specific playbooks live in `.cursor/skills/*/SKILL.md` (e.g. **graphify**, frontend UI, system design, React patterns, performance). Stack truth stays here and in `.cursor/rules/`; skills add situational depth the model can apply when relevant.
 
+### Finish workflows (post-slice)
+
+See **`docs/workflows.md`**. Invoke explicitly after a focused diff:
+
+| Workflow | When |
+|----------|------|
+| **add-docs** | JSDoc + comments for changed files only |
+| **update-test** | Vitest coverage for changed behavior |
+
+Recommended before commit: **update-test** → **add-docs** → `pnpm lint` / `pnpm build`.
+
 ## Project conventions (high-signal)
 
 - **Imports**: use the `@/` alias (see `tsconfig.json`, `vite.config.ts`).
@@ -72,6 +83,7 @@ Before any multi-step feature:
 3. **Do not combine** engine plumbing, new UI surfaces, persistence, and collaboration in the same diff.
 4. **Do not mount new UI** (sidebars, rooms, share bars, multi-dashboard chrome) until that slice’s plan explicitly includes UX placement.
 5. After each slice lands, run **`pnpm test`** / **`pnpm build`** before starting the next plan item.
+6. Before commit, run **`update-test`** then **`add-docs`** on the diff (see **`docs/workflows.md`**).
 
 When in doubt: smaller diff, clearer plan, one todo at a time.
 

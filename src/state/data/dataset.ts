@@ -58,9 +58,10 @@ export const persistedDatasetsAtom = atomWithStorage<DatasetMeta[]>(
 );
 
 /**
- * Persisted atom containing the currently active dataset
- * Uses localStorage to remember the selected dataset across sessions
- * 
+ * Persisted atom containing the dashboard's active dataset.
+ * One dataset per dashboard view — all charts and tables ingest from this id;
+ * each visualization slices it via per-viz viewport and filters.
+ *
  * @value DatasetRef | null - Reference to the active dataset or null if none selected
  */
 export const activeDatasetAtom = atomWithStorage<DatasetRef | null>(

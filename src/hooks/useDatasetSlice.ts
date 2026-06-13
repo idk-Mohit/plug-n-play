@@ -10,7 +10,7 @@ import { generateSeries } from "@/compute";
 import { ChartType } from "@/enums/chart.enums";
 import { activeDatasetAtom } from "@/state/data/dataset";
 import { isDefaultSampleDatasetId } from "@/state/data/defaultSampleDataset";
-import { globalFiltersAtom } from "@/state/data/filters";
+import { vizFiltersAtomFamily } from "@/state/data/filters";
 import { chartSettingsAtomFamily } from "@/state/ui/chart-setting";
 import { chartViewportAtomFamily } from "@/state/ui/viewport";
 import type { timeseriesdata } from "@/types/data.types";
@@ -32,11 +32,12 @@ const DEBOUNCE_MS = 80;
 
 /**
  * Loads a downsampled window for the cartesian chart via engine worker + IndexedDB.
- * Resets viewport when the active dataset id changes.
+ * All charts share the dashboard dataset (`activeDatasetAtom`); each chartId gets its
+ * own viewport and row filters so panels can show different slices of the same data.
  */
 export function useDatasetSlice(chartId: string) {
   const active = useAtomValue(activeDatasetAtom);
-  const filters = useAtomValue(globalFiltersAtom);
+  const filters = useAtomValue(vizFiltersAtomFamily(chartId));
   const chartType = useAtomValue(chartSettingsAtomFamily(chartId)).type;
   const [viewport, setViewport] = useAtom(chartViewportAtomFamily(chartId));
   const [data, setData] = useState<timeseriesdata[]>([]);

@@ -143,6 +143,41 @@ describe("data.service / ensureDataset & IO", () => {
     }
   });
 
+  it("getPage applies row filters within the requested page slice", async () => {
+    const rows = [
+      { y: 10 },
+      { y: 50 },
+      { y: 90 },
+      { y: 20 },
+    ];
+    await dataService.save(
+      makeReq({
+        method: "save",
+        args: [{ datasetId: "filtered", data: rows }],
+      }),
+    );
+
+    const res = await dataService.getPage(
+      makeReq({
+        method: "getPage",
+        args: [
+          {
+            datasetId: "filtered",
+            offset: 0,
+            limit: 10,
+            filters: [{ id: "f1", field: "y", op: "gt", value: 40 }],
+          },
+        ],
+      }),
+    );
+
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.result.rows).toEqual([{ y: 50 }, { y: 90 }]);
+      expect(res.result.total).toBe(4);
+    }
+  });
+
   it("save removes legacy WIP keys under dataset:<id>:", async () => {
     store.legacy.set("dataset:ds2:chunk:0", [1, 2, 3]);
     store.legacy.set("dataset:ds2:meta", { version: 1 });

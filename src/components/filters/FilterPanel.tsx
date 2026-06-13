@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { FilterDefinition, FilterOp } from "@/core/rpc/data-contract";
-import { createFilter, globalFiltersAtom } from "@/state/data/filters";
+import { createFilter, vizFiltersAtomFamily } from "@/state/data/filters";
 
 const OPS: { value: FilterOp; label: string }[] = [
   { value: "gt", label: ">" },
@@ -21,12 +21,17 @@ const OPS: { value: FilterOp; label: string }[] = [
   { value: "between", label: "between" },
 ];
 
+type FilterPanelProps = {
+  /** Chart or table id — filters are scoped per visualization, not dashboard-wide. */
+  vizId: string;
+};
+
 /**
- * Global filter editor (Phase 1d). Mount only where product UX calls for it —
- * not wired into Home by default until a focused UI pass lands.
+ * Per-visualization filter editor (Phase 1d). Each panel on a dashboard can
+ * slice the shared dataset independently.
  */
-export function FilterPanel() {
-  const [filters, setFilters] = useAtom(globalFiltersAtom);
+export function FilterPanel({ vizId }: FilterPanelProps) {
+  const [filters, setFilters] = useAtom(vizFiltersAtomFamily(vizId));
 
   const addFilter = () => {
     setFilters([...filters, createFilter({ field: "y", op: "gt", value: 0 })]);

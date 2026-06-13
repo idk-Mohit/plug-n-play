@@ -19,6 +19,8 @@ Use one markdown file per focused slice before implementation.
 - ...
 
 ## Test plan
+- [ ] update-test workflow (or manual equivalent)
+- [ ] add-docs workflow (or manual equivalent)
 - [ ] pnpm test
 - [ ] pnpm build
 - [ ] Manual: ...
