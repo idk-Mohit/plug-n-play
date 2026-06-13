@@ -80,7 +80,10 @@ export function useDatasetSlice(chartId: string) {
       };
     }
 
+    let cancelled = false;
+
     const run = async () => {
+      if (cancelled) return;
       setLoading(true);
       setError(null);
       try {
@@ -88,9 +91,10 @@ export function useDatasetSlice(chartId: string) {
         const meta = await rpc.call<DataDatasetMeta>("Data", "getMeta", [
           datasetId,
         ]);
+        if (cancelled) return;
+
         if (!meta.xRange) {
           setData([]);
-          setLoading(false);
           return;
         }
         const [x0, x1] = meta.xRange;
@@ -118,12 +122,14 @@ export function useDatasetSlice(chartId: string) {
             },
           ],
         );
+        if (cancelled) return;
         setData(result.points);
       } catch (e) {
+        if (cancelled) return;
         setError(e instanceof Error ? e : new Error(String(e)));
         setData([]);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
@@ -134,6 +140,7 @@ export function useDatasetSlice(chartId: string) {
     }, DEBOUNCE_MS);
 
     return () => {
+      cancelled = true;
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, [datasetId, chartType, viewport, setViewport, filters]);

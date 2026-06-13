@@ -251,6 +251,33 @@ describe("data.service / ensureDataset & IO", () => {
     expect(store.idbPutMetaCalls).toBeGreaterThan(0);
   });
 
+  it("getPage seeds rows from IDB manifest preview when row store is empty", async () => {
+    store.legacy.set("datasources-manifest", [
+      {
+        id: "manifest-only",
+        name: "Recovered",
+        preview: [{ x: 1, y: 2 }, { x: 3, y: 4 }],
+      },
+    ]);
+
+    const res = await dataService.getPage(
+      makeReq({
+        method: "getPage",
+        args: [{ datasetId: "manifest-only", offset: 0, limit: 10 }],
+      }),
+    );
+
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.result.total).toBe(2);
+      expect(res.result.rows).toEqual([
+        { x: 1, y: 2 },
+        { x: 3, y: 4 },
+      ]);
+    }
+    expect(store.meta.get("manifest-only")?.rowCount).toBe(2);
+  });
+
   it("save persists a single JSON object as one row", async () => {
     const payload = { point: true, n: 42 };
     const saveRes = await dataService.save(

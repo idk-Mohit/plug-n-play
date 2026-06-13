@@ -31,10 +31,12 @@ import {
   hydrateMissingPreviewsFromIdb,
   isPersistedDatasourcesListEmptyInLs,
   mergePersistedDatasetsWithIndexedDbSources,
+  slimDatasetMetaForPersistence,
 } from "@/state/data/dataset-storage";
 import {
   createDefaultSampleDatasetMeta,
   DEFAULT_SAMPLE_DATASET_ID,
+  isDefaultSampleDatasetId,
 } from "@/state/data/defaultSampleDataset";
 import { activeViewAtom } from "@/state/ui/view";
 import { parseViewFromHash } from "@/state/ui/view-hash";
@@ -46,6 +48,23 @@ import {
   stopSystemSampler,
 } from "@/core/system/sampler";
 import { samplerIntervalMsAtom } from "@/state/system/atoms";
+
+/** Seed IDB rows from manifest preview when metadata exists but row store is empty. */
+async function seedRowsFromManifestPreviews(
+  rpc: ReturnType<typeof getEngineRpc>,
+  datasets: DatasetMeta[],
+): Promise<void> {
+  for (const d of datasets) {
+    if (isDefaultSampleDatasetId(d.id)) continue;
+    const preview = d.preview;
+    if (!Array.isArray(preview) || preview.length === 0) continue;
+    const meta = await rpc.call<{ rowCount: number }>("Data", "getMeta", [
+      d.id,
+    ]);
+    if (meta.rowCount > 0) continue;
+    await rpc.call("Data", "save", [{ datasetId: d.id, data: preview }]);
+  }
+}
 
 /**
  * The main app component.
@@ -106,6 +125,10 @@ function App() {
       const hydrated = await hydrateMissingPreviewsFromIdb(merged);
       if (cancelled()) return;
       setPersistedDatasets(hydrated);
+      await rpc.call("Data", "saveManifest", [
+        hydrated.map(slimDatasetMetaForPersistence),
+      ]);
+      await seedRowsFromManifestPreviews(rpc, hydrated);
     },
     [setPersistedDatasets, store],
   );

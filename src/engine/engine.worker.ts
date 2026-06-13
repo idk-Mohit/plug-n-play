@@ -70,12 +70,32 @@ function priorityForRoute(key: string): "high" | "normal" | "low" {
     key === "Data.getAggregated" ||
     key === "Data.getPage" ||
     key === "Data.getRange" ||
-    key === "Data.executeQuery"
+    key === "Data.executeQuery" ||
+    key === "Data.getMeta" ||
+    key === "Data.save"
   ) {
     return "high";
   }
-  if (key === "Data.getPreview") return "normal";
+  if (
+    key === "Data.getPreview" ||
+    key === "Data.getManifest" ||
+    key === "Data.listDatasetKeys" ||
+    key === "Data.getDashboardManifest" ||
+    key === "Data.saveManifest" ||
+    key === "Data.saveDashboardManifest"
+  ) {
+    return "normal";
+  }
   return "low";
+}
+
+/** Dashboard hot path — skip queue to avoid slot starvation from timed-out RPCs. */
+function shouldBypassTaskQueue(key: string): boolean {
+  return (
+    key === "Data.getMeta" ||
+    key === "Data.getPage" ||
+    key === "Data.getPreview"
+  );
 }
 
 self.onmessage = async (ev: MessageEvent) => {
@@ -128,12 +148,14 @@ self.onmessage = async (ev: MessageEvent) => {
   const queueKey = `${key}:${req.id}`;
 
   try {
-    const res = await workerTaskQueue.enqueue(
-      queueKey,
-      priorityForRoute(key),
-      Date.now(),
-      () => handler(req),
-    );
+    const res = shouldBypassTaskQueue(key)
+      ? await handler(req)
+      : await workerTaskQueue.enqueue(
+          queueKey,
+          priorityForRoute(key),
+          Date.now(),
+          () => handler(req),
+        );
 
     const r = res as { ok?: unknown };
     if (!res || typeof res !== "object" || typeof r.ok !== "boolean") {

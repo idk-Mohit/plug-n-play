@@ -110,4 +110,35 @@ describe("MiniGrpc", () => {
     );
     void id;
   });
+
+  it("posts cancel envelope when RPC times out", async () => {
+    vi.useFakeTimers();
+    const posts: unknown[] = [];
+    const worker = {
+      postMessage: vi.fn((msg: unknown) => {
+        posts.push(msg);
+      }),
+      onmessage: null as ((ev: MessageEvent) => void) | null,
+      terminate: vi.fn(),
+    } as unknown as Worker;
+
+    const grpc = new MiniGrpc(worker);
+    const p = grpc.call("Data", "getMeta", ["slow-id"], { timeout: 100 });
+
+    expect(posts.length).toBe(1);
+    const id = (posts[0] as Record<string, unknown>).id as string;
+
+    const rejection = expect(p).rejects.toThrow("RPC timeout: Data.getMeta");
+    await vi.advanceTimersByTimeAsync(100);
+    await rejection;
+
+    const cancelMsg = posts.find(
+      (m) => (m as Record<string, unknown>).cancel === true,
+    ) as Record<string, unknown> | undefined;
+    expect(cancelMsg?.cancel).toBe(true);
+    expect(cancelMsg?.id).toBe(id);
+    expect(cancelMsg?.v).toBe(V);
+
+    vi.useRealTimers();
+  });
 });

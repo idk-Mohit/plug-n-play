@@ -1,4 +1,5 @@
 import ChartPanel from "@/components/charts/ChartPanel";
+import { EmptyDashboardSection } from "@/components/dashboard/EmptyDashboardSection";
 import { useEffect, useState } from "react";
 import type { AnyRecord } from "@/types/data.types";
 import { ChartFullSettingsDrawer } from "@/components/charts/settings/ChartFullSettingDrawer";
@@ -8,6 +9,11 @@ import {
   DEFAULT_SAMPLE_POINT_COUNT,
   isDefaultSampleDatasetId,
 } from "@/state/data/defaultSampleDataset";
+import {
+  activeDashboardIdAtom,
+  persistedDashboardsAtom,
+  resolveActiveDashboard,
+} from "@/state/data/dashboard";
 import { useAtomValue } from "jotai";
 import { generateSeries } from "@/compute";
 import { useDataSource } from "@/hooks/useDataSource";
@@ -28,6 +34,14 @@ function HomeTableFromSource({ uploadId }: { uploadId: string }) {
 }
 
 const Home = () => {
+  const dashboards = useAtomValue(persistedDashboardsAtom);
+  const activeDashboardId = useAtomValue(activeDashboardIdAtom);
+  const activeDashboard = resolveActiveDashboard(
+    dashboards,
+    activeDashboardId,
+  );
+  const isBlankDashboard = activeDashboard?.templateId === "blank";
+
   const activeDataSet = useAtomValue(activeDatasetAtom);
   const dataCount = DEFAULT_SAMPLE_POINT_COUNT;
 
@@ -57,6 +71,12 @@ const Home = () => {
       cancelled = true;
     };
   }, [uploadId, dataCount]);
+
+  if (isBlankDashboard) {
+    return (
+      <EmptyDashboardSection dashboardName={activeDashboard?.name} />
+    );
+  }
 
   return (
     <>

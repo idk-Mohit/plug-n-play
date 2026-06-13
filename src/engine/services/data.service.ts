@@ -137,12 +137,44 @@ async function ensureDataset(datasetId: string): Promise<DatasetMetaRecord> {
     return meta;
   }
 
+  /** Manifest lists dataset but row store empty — seed from slim preview backup in IDB. */
+  const fromManifest = await tryRecoverRowsFromIdbManifestPreview(datasetId);
+  if (fromManifest) {
+    return fromManifest;
+  }
+
   if (existing) {
     return existing;
   }
 
   /** Do not persist empty meta on read — avoids poisoning ids before `Data.save` completes. */
   return { ...EMPTY_META };
+}
+
+/** When IDB rows are missing but manifest backup still has preview rows, re-seed the row store. */
+async function tryRecoverRowsFromIdbManifestPreview(
+  datasetId: string,
+): Promise<DatasetMetaRecord | null> {
+  const manifest = await idbGet<unknown>(DATASETS_MANIFEST_IDB_KEY);
+  if (!Array.isArray(manifest)) return null;
+  const entry = manifest.find(
+    (m): m is Record<string, unknown> =>
+      m !== null &&
+      typeof m === "object" &&
+      String((m as { id?: unknown }).id) === datasetId,
+  );
+  if (!entry) return null;
+  const preview = entry.preview;
+  if (!Array.isArray(preview) || preview.length === 0) return null;
+  const rows = preview as unknown[];
+  const { xRange } = await idbBulkWriteRows(datasetId, rows);
+  const meta: DatasetMetaRecord = {
+    version: META_VERSION,
+    rowCount: rows.length,
+    xRange,
+  };
+  await idbPutMeta(datasetId, meta);
+  return meta;
 }
 
 async function* iterTsInRangeAsc(
