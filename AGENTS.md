@@ -53,8 +53,9 @@ See **`docs/workflows.md`**. Invoke explicitly after a focused diff:
 |----------|------|
 | **add-docs** | JSDoc + comments for changed files only |
 | **update-test** | Vitest coverage for changed behavior |
+| **add-commit** | Draft commit message from diff; commit only when you explicitly ask |
 
-Recommended before commit: **update-test** → **add-docs** → `pnpm lint` / `pnpm build`.
+Recommended before commit: **update-test** → **add-docs** → **add-commit** → `pnpm lint` / `pnpm build`.
 
 ## Project conventions (high-signal)
 
@@ -83,7 +84,7 @@ Before any multi-step feature:
 3. **Do not combine** engine plumbing, new UI surfaces, persistence, and collaboration in the same diff.
 4. **Do not mount new UI** (sidebars, rooms, share bars, multi-dashboard chrome) until that slice’s plan explicitly includes UX placement.
 5. After each slice lands, run **`pnpm test`** / **`pnpm build`** before starting the next plan item.
-6. Before commit, run **`update-test`** then **`add-docs`** on the diff (see **`docs/workflows.md`**).
+6. Before commit: **`update-test`** → **`add-docs`** → **`add-commit`** (see **`docs/workflows.md`**).
 
 When in doubt: smaller diff, clearer plan, one todo at a time.
 

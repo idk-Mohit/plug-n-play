@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 import type { FilterDefinition, FilterOp } from "@/core/rpc/data-contract";
 import { createFilter, vizFiltersAtomFamily } from "@/state/data/filters";
 
@@ -24,13 +25,16 @@ const OPS: { value: FilterOp; label: string }[] = [
 type FilterPanelProps = {
   /** Chart or table id — filters are scoped per visualization, not dashboard-wide. */
   vizId: string;
+  /** Strip outer card chrome when nested inside the settings drawer. */
+  embedded?: boolean;
 };
 
 /**
- * Per-visualization filter editor (Phase 1d). Each panel on a dashboard can
- * slice the shared dataset independently.
+ * Row-filter editor bound to {@link vizFiltersAtomFamily} for `vizId`.
+ * Updates propagate to {@link useDatasetSlice} / {@link useDataSource} on the worker path.
+ * Use `embedded` when rendered inside {@link ChartSettingsFormWrapper} (section header is external).
  */
-export function FilterPanel({ vizId }: FilterPanelProps) {
+export function FilterPanel({ vizId, embedded = false }: FilterPanelProps) {
   const [filters, setFilters] = useAtom(vizFiltersAtomFamily(vizId));
 
   const addFilter = () => {
@@ -46,12 +50,23 @@ export function FilterPanel({ vizId }: FilterPanelProps) {
   };
 
   return (
-    <div className="rounded-lg border bg-card p-3 space-y-2">
+    <div
+      className={cn(
+        "space-y-2",
+        !embedded && "rounded-lg border bg-card p-3",
+      )}
+    >
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 text-sm font-medium">
-          <IconFilter className="size-4" aria-hidden="true" />
-          Data filters
-        </div>
+        {!embedded ? (
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <IconFilter className="size-4" aria-hidden="true" />
+            Data filters
+          </div>
+        ) : (
+          <p className="text-[11px] leading-snug text-muted-foreground">
+            Row filters for this chart only.
+          </p>
+        )}
         <Button type="button" size="sm" variant="outline" onClick={addFilter}>
           <IconPlus className="size-4" aria-hidden="true" />
           Add
