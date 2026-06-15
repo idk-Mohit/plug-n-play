@@ -15,6 +15,7 @@ node_modules
 
 dist
 dist-ssr
+public/version.json
 *.local
 
 # Graphify (https://github.com/safishamsi/graphify) — local knowledge graph; regenerate with pnpm graphify:update

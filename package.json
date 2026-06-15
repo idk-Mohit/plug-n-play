@@ -5,8 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "predev": "node scripts/sync-app-version.mjs",
     "prepare": "husky install",
-    "build": "tsc -b && vite build",
+    "prebuild": "node scripts/sync-app-version.mjs",
+    "build": "tsc -b && vite build && node scripts/verify-build-version.mjs",
+    "version:sync": "node scripts/sync-app-version.mjs",
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
