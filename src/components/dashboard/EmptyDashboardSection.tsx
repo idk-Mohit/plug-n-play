@@ -1,13 +1,19 @@
 import { LayoutDashboard } from "lucide-react";
+import { useSetAtom } from "jotai";
+
+import { Button } from "@/components/ui/button";
+import { dashboardDrawerOpenAtom } from "@/state/ui/layout";
 
 type EmptyDashboardSectionProps = {
   dashboardName?: string;
 };
 
-/** Empty state for dashboards created with the blank template (Phase 1a). */
+/** Empty state when a dashboard has no panels (blank template or user cleared layout). */
 export function EmptyDashboardSection({
   dashboardName,
 }: EmptyDashboardSectionProps) {
+  const setDrawerOpen = useSetAtom(dashboardDrawerOpenAtom);
+
   return (
     <section
       className="flex min-h-[min(60vh,28rem)] w-full flex-col items-center justify-center rounded-lg border border-dashed border-border/70 bg-muted/15 p-8 text-center shadow-sm animate-in fade-in ease-linear"
@@ -30,16 +36,24 @@ export function EmptyDashboardSection({
         {dashboardName ? (
           <>
             <span className="font-medium text-foreground">{dashboardName}</span>{" "}
-            has no charts or tables yet. Layout and widgets arrive in a later
-            phase — for now you have a clean slate.
+            has no charts or tables yet. Add visualizations and pick a dataset
+            from dashboard settings.
           </>
         ) : (
           <>
-            No charts or tables yet. Layout and widgets arrive in a later phase
-            — for now you have a clean slate.
+            No charts or tables yet. Add visualizations and pick a dataset from
+            dashboard settings.
           </>
         )}
       </p>
+      <Button
+        type="button"
+        size="sm"
+        className="mt-4 h-8 text-xs"
+        onClick={() => setDrawerOpen(true)}
+      >
+        Configure dashboard
+      </Button>
     </section>
   );
 }

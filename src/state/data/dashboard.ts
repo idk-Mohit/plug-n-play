@@ -12,6 +12,7 @@ export {
   findDashboardById,
   nextDashboardName,
   resolveActiveDashboard,
+  updateDashboardRecord,
   type CreateDashboardInput,
 } from "./dashboard.helpers";
 

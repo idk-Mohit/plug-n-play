@@ -14,3 +14,6 @@ import { atom } from "jotai";
  * @value boolean - true when sidebar is transitioning, false otherwise
  */
 export const sidebarTransitionAtom = atom(false);
+
+/** Bottom dashboard settings drawer (footer PanelBottomOpen + empty-state CTA). */
+export const dashboardDrawerOpenAtom = atom(false);

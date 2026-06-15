@@ -7,6 +7,16 @@ description: "Use for any question about a codebase, its architecture, file rela
 
 Turn any folder of files into a navigable knowledge graph with community detection, an honest audit trail, and three outputs: interactive HTML, GraphRAG-ready JSON, and a plain-language GRAPH_REPORT.md.
 
+## Agent exploration (Plug & Play)
+
+When answering codebase questions in this repo, **do not search first**. The always-on rule `.cursor/rules/graphify.mdc` requires:
+
+1. `pnpm graphify:query -- "…"` / `graphify path` / `graphify explain` from repo root
+2. Read/Grep only files graphify surfaced
+3. Re-query when scope changes; `pnpm graphify:update` after code edits
+
+Paste the subagent preamble from that rule into every Task prompt that explores the repo.
+
 ## Usage
 
 ```

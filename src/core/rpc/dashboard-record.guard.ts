@@ -1,4 +1,9 @@
-import type { DashboardRecord, DashboardTemplateId } from "./data-contract";
+import type {
+  DashboardPanel,
+  DashboardRecord,
+  DashboardTemplateId,
+} from "./data-contract";
+import { ChartType } from "@/enums/chart.enums";
 
 const DASHBOARD_TEMPLATE_IDS = new Set<DashboardTemplateId>([
   "blank",
@@ -6,6 +11,26 @@ const DASHBOARD_TEMPLATE_IDS = new Set<DashboardTemplateId>([
   "analytics",
   "copy",
 ]);
+
+const CHART_TYPES = new Set<string>(Object.values(ChartType));
+
+function isValidDashboardPanel(x: unknown): x is DashboardPanel {
+  if (x === null || typeof x !== "object" || Array.isArray(x)) return false;
+  const p = x as Record<string, unknown>;
+  if (typeof p.id !== "string" || p.id.length === 0) return false;
+  if (p.type !== "chart" && p.type !== "table") return false;
+  if (typeof p.order !== "number" || !Number.isFinite(p.order)) return false;
+  if (p.chartType !== undefined) {
+    if (typeof p.chartType !== "string" || !CHART_TYPES.has(p.chartType)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function isValidPanelsField(panels: unknown): panels is DashboardPanel[] {
+  return Array.isArray(panels) && panels.every(isValidDashboardPanel);
+}
 
 /** Runtime guard for worker + storage boundaries. */
 export function isValidDashboardRecord(x: unknown): x is DashboardRecord {
@@ -20,7 +45,8 @@ export function isValidDashboardRecord(x: unknown): x is DashboardRecord {
     DASHBOARD_TEMPLATE_IDS.has(r.templateId as DashboardTemplateId) &&
     typeof r.createdAt === "string" &&
     typeof r.updatedAt === "string" &&
-    (r.copiedFromId === undefined || typeof r.copiedFromId === "string")
+    (r.copiedFromId === undefined || typeof r.copiedFromId === "string") &&
+    (r.panels === undefined || isValidPanelsField(r.panels))
   );
 }
 

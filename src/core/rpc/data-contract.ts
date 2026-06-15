@@ -95,7 +95,18 @@ export type DataSaveManifestArgs = unknown[];
 /** Predefined dashboard starter (layout applied in Phase 1b). */
 export type DashboardTemplateId = "blank" | "chart-table" | "analytics" | "copy";
 
-/** Dashboard metadata persisted in LS + `dashboards-manifest` IDB backup. Layout is Phase 1b. */
+export type DashboardPanelType = "chart" | "table";
+
+/** One visualization slot on a dashboard; persisted on {@link DashboardRecord}. */
+export type DashboardPanel = {
+  id: string;
+  type: DashboardPanelType;
+  /** Chart panels only — maps to `chartSettingsAtomFamily(id).type`. */
+  chartType?: string;
+  order: number;
+};
+
+/** Dashboard metadata persisted in LS + `dashboards-manifest` IDB backup. */
 export type DashboardRecord = {
   id: string;
   name: string;
@@ -103,6 +114,7 @@ export type DashboardRecord = {
   copiedFromId?: string;
   createdAt: string;
   updatedAt: string;
+  panels?: DashboardPanel[];
 };
 
 /** Manifest backup in IndexedDB (`dashboards-manifest`). */

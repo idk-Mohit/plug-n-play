@@ -22,7 +22,7 @@ This repo is **Plug & Play**: a performance-first dashboard + charting engine bu
 - `pnpm build`: typecheck + build
 - `pnpm test`: vitest
 - **`pnpm graphify:update`**: refresh code knowledge graph → `graphify-out/` + `cache/` (no API key)
-- **`pnpm graphify:query -- "question"`**: query `graphify-out/graph.json`
+- **`pnpm graphify:query -- "question"`**: **required first step** for codebase context — agents must query before Grep/Glob/Read exploration
 - **Parallel branches:** `docs/GIT_WORKTREES.md` — `pnpm worktree:add -- <branch>` (defaults to branching from **`dev`**; interactive prompt or `--from-current` / `--base`)
 
 ## Cursor rules (the strict guardrails)
@@ -39,7 +39,7 @@ Rules in `.cursor/rules/` are loaded automatically by Cursor. The numbered serie
 - **`60-frontend-quality`** — accessibility, motion, content, anti-AI-slop aesthetics (Vercel WIG + frontend-design)
 - **`70-react-vite-performance`** — Vite-only subset of Vercel React best practices
 - **`80-data-handling`** — RPC contracts, worker boundary, storage discipline
-- **`graphify`** (always) — query `graphify-out/graph.json` before grepping; see `docs/KNOWLEDGE_MAP.md`
+- **`graphify`** (always) — **graphify-first**: query `graphify-out/` via `pnpm graphify:query` / `graphify path|explain` **before** Grep/Glob/SemanticSearch; see `docs/KNOWLEDGE_MAP.md`
 
 ## Optional agent skills (repo-local)
 

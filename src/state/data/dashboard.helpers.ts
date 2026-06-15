@@ -1,19 +1,24 @@
 import type { DashboardRecord, DashboardTemplateId } from "@/core/rpc/data-contract";
 
 import { isCopyTemplate } from "./dashboard-templates";
+import {
+  clonePanelsForCopy,
+  getDefaultPanelsForTemplate,
+  normalizeDashboardRecord,
+} from "./dashboard-layout";
 
 export const DEFAULT_DASHBOARD_ID = "dashboard-main";
 
 /** Stable seed dashboard created on first run and when the manifest is empty. */
 export function createDefaultMainDashboard(): DashboardRecord {
   const now = new Date().toISOString();
-  return {
+  return normalizeDashboardRecord({
     id: DEFAULT_DASHBOARD_ID,
     name: "Main",
     templateId: "chart-table",
     createdAt: now,
     updatedAt: now,
-  };
+  });
 }
 
 /** User input for {@link buildDashboardRecord}; `copiedFromId` required when `templateId` is `copy`. */
@@ -38,27 +43,44 @@ export function buildDashboardRecord(
   const trimmed = input.name.trim();
 
   if (isCopyTemplate(input.templateId) && source) {
-    return {
+    return normalizeDashboardRecord({
       id,
       name: trimmed || `Copy of ${source.name}`,
       templateId: source.templateId === "copy" ? "blank" : source.templateId,
       copiedFromId: source.id,
+      panels: clonePanelsForCopy(source),
       createdAt: now,
       updatedAt: now,
-    };
+    });
   }
 
   if (!trimmed) {
     throw new Error("Dashboard name is required");
   }
 
-  return {
+  const templateId = isCopyTemplate(input.templateId) ? "blank" : input.templateId;
+
+  return normalizeDashboardRecord({
     id,
     name: trimmed,
-    templateId: isCopyTemplate(input.templateId) ? "blank" : input.templateId,
+    templateId,
+    panels: getDefaultPanelsForTemplate(templateId),
     createdAt: now,
     updatedAt: now,
-  };
+  });
+}
+
+export function updateDashboardRecord(
+  dashboards: DashboardRecord[],
+  id: string,
+  patch: Partial<Pick<DashboardRecord, "name" | "panels">>,
+): DashboardRecord[] {
+  const now = new Date().toISOString();
+  return dashboards.map((d) =>
+    d.id === id
+      ? normalizeDashboardRecord({ ...d, ...patch, updatedAt: now })
+      : d,
+  );
 }
 
 export function appendDashboard(
@@ -83,7 +105,8 @@ export function resolveActiveDashboard(
   if (dashboards.length === 0) return null;
   if (activeId) {
     const found = findDashboardById(dashboards, activeId);
-    if (found) return found;
+    if (found) return normalizeDashboardRecord(found);
   }
-  return dashboards[0] ?? null;
+  const fallback = dashboards[0];
+  return fallback ? normalizeDashboardRecord(fallback) : null;
 }

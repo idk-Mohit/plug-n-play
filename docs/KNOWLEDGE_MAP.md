@@ -80,16 +80,18 @@ graphify hook install
 
 AST-only post-commit refresh + `graph.json` merge driver. Re-run after upgrading graphify.
 
-## Query the graph
+## Query the graph (agents — mandatory first step)
 
-Cursor loads `.cursor/rules/graphify.mdc` (`alwaysApply: true`) — agents should query before grepping:
+Cursor loads `.cursor/rules/graphify.mdc` (`alwaysApply: true`). **Every agent turn** that needs codebase context must query graphify **before** Grep, Glob, SemanticSearch, or exploratory Read. Subagents must include the same rule in their prompts.
 
 ```bash
+pnpm graphify:query -- "how does RPC reach the engine worker?"
 graphify query "how does RPC reach the engine worker?"
 graphify path "useDataSource" "Data.getPage"
 graphify explain "MiniGrpc"
-pnpm graphify:query "how does chart aggregation work?"
 ```
+
+Only after graphify results should agents Read/Grep specific files graphify named. Re-query when the task scope changes.
 
 Open **`graphify-out/graph.html`** in a browser for visual exploration.
 

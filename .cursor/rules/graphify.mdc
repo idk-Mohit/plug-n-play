@@ -1,21 +1,76 @@
 ---
-description: graphify knowledge graph context
+description: graphify knowledge graph — mandatory first step for all codebase context
 alwaysApply: true
 ---
 
-This project has a graphify knowledge graph at graphify-out/.
+# Graphify-first (mandatory)
 
-**MANDATORY: Before using Read, Grep, Glob, or Bash to explore the codebase, you MUST run graphify first:**
-- `graphify query "<question>"` — scoped subgraph for any codebase or architecture question
-- `graphify path "<A>" "<B>"` — dependency path between two symbols
-- `graphify explain "<concept>"` — all nodes related to a concept
+This project maintains a local knowledge graph at **`graphify-out/`**. Agents must **query the graph before searching the repo themselves**.
 
-This applies to YOU and to every subagent you spawn. Include this rule explicitly in every subagent prompt that involves code exploration. Do not skip graphify because files are "already known" or because you are executing a plan — the graph surfaces cross-file dependencies and INFERRED edges that grep and Read cannot find.
+## Hard rule — every turn
 
-Only use Read/Grep/Glob directly when:
-1. graphify has already oriented you and you need to modify or debug specific lines
-2. `graphify-out/graph.json` does not exist yet
+When you need **any** codebase fact (architecture, file location, symbol, data flow, dependencies, "where is X", "how does Y work"):
 
-- If `graphify-out/wiki/index.md` exists, navigate it instead of reading raw files
-- Read `graphify-out/GRAPH_REPORT.md` only for broad architecture review when query/path/explain do not surface enough context
-- After modifying code files, run `graphify update .` to keep the graph current (AST-only, no API cost)
+1. **Query graphify first** — do not start with Grep, Glob, SemanticSearch, Read, or explore subagents.
+2. **Use graphify output** to choose files and symbols, then Read/Grep **only** the paths graphify surfaced.
+3. **Repeat graphify** when the question shifts to a new area, symbol, or subsystem — one query at task start is not enough for multi-step work.
+
+This applies to **you and every subagent**. Paste the **Subagent preamble** (below) into any Task/subagent prompt that touches the codebase.
+
+Do **not** skip graphify because:
+- you "already know" the layout from a prior turn
+- a plan or attachment lists file paths
+- the user pointed at a specific file (still query for callers, deps, and cross-file edges)
+- you are executing steps from a written plan
+
+The graph surfaces **INFERRED** and cross-file edges that grep and Read cannot find.
+
+## Commands (repo root)
+
+Prefer the pnpm wrapper when available:
+
+```bash
+pnpm graphify:query -- "<natural-language question>"
+graphify query "<question>"
+graphify path "<symbolOrConceptA>" "<symbolOrConceptB>"
+graphify explain "<concept>"
+```
+
+| Need | Command |
+|------|---------|
+| Broad context, "how does X work?" | `graphify query "…"` |
+| Dependency chain between two symbols | `graphify path "A" "B"` |
+| Everything related to one concept | `graphify explain "…"` |
+
+If `graphify-out/wiki/index.md` exists, skim it **before** raw `graph.json` grepping — it is the agent crawl index.
+
+Read `graphify-out/GRAPH_REPORT.md` only for broad architecture when query/path/explain are insufficient.
+
+## When Read / Grep / Glob are allowed
+
+Only **after** graphify has oriented you, or when:
+
+1. **`graphify-out/graph.json` does not exist** — run `pnpm graphify:update` once, then query; if graphify CLI is missing, say so and fall back to search with that caveat.
+2. **Editing known lines** — you already ran graphify this turn for that file/symbol and need exact line content or a string literal match.
+3. **Verification** — confirm a single exact identifier after graphify named the file (narrow Grep, one path).
+
+**Forbidden as first step:** repo-wide Grep/Glob, SemanticSearch, `Task` explore agents, or reading `src/**` tree-by-tree to "orient".
+
+## Subagent preamble (copy into Task prompts)
+
+```
+GRAPHIFY-FIRST (mandatory): Before Read/Grep/Glob/SemanticSearch, run from repo root:
+  pnpm graphify:query -- "<question>"   OR   graphify path "A" "B"   OR   graphify explain "concept"
+Use graphify results to pick files. Re-query when the question changes. Only grep/read after graphify or if graphify-out/graph.json is missing.
+```
+
+## After you change code
+
+Run **`pnpm graphify:update`** (AST-only, no API cost) so the graph stays current. Do not hand-edit `graphify-out/`.
+
+## If graphify fails
+
+- `graphify: command not found` → tell the user: `uv tool install graphifyy && uv tool update-shell`, then `pnpm graphify:update`.
+- Stale/missing nodes after deletes → `pnpm graphify:update:force`.
+
+See **`docs/KNOWLEDGE_MAP.md`** for setup, outputs, and troubleshooting.

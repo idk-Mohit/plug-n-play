@@ -1,9 +1,8 @@
 import { Separator } from "@/components/ui/separator";
-import { PanelBottomOpen } from "lucide-react";
+import { PanelBottomClose, PanelBottomOpen } from "lucide-react";
 import IconButton from "../IconButton";
 import { Combobox } from "../ui/combobox";
-import type { DatasetRef } from "@/core/rpc/controllers/datasources";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAtom, useAtomValue } from "jotai";
 import { computeHealth } from "@/core/system/health";
 import { cn } from "@/lib/utils";
@@ -14,22 +13,21 @@ import {
 } from "@/state/system/atoms";
 import {
   activeDatasetAtom,
-  persistedDatasetsAtom,
   type DatasetMeta,
 } from "@/state/data/dataset";
+import type { DatasetRef } from "@/core/rpc/controllers/datasources";
+import { useDatasetOptions } from "@/hooks/useDatasetOptions";
 import { activeViewAtom } from "@/state/ui/view";
+import { dashboardDrawerOpenAtom } from "@/state/ui/layout";
 import { dataEngine } from "@/core/data-engine";
 import type { uuid } from "@/types/data.types";
 import { FooterRowCount, UploadDate } from "./FooterAtoms";
-import {
-  DEFAULT_SAMPLE_DATASET_ID,
-  createDefaultSampleDatasetMeta,
-} from "@/state/data/defaultSampleDataset";
 
 export function SiteFooter() {
   const activeView = useAtomValue(activeViewAtom);
   const [activeDatasetRef, setActiveDatasetRef] = useAtom(activeDatasetAtom);
-  const persistedDatasets = useAtomValue(persistedDatasetsAtom);
+  const datasetOptions = useDatasetOptions();
+  const [drawerOpen, setDrawerOpen] = useAtom(dashboardDrawerOpenAtom);
   const samplerOn = useAtomValue(samplerEnabledAtom);
   const live = useAtomValue(liveSampleAtom);
   const [widgetOpen, setWidgetOpen] = useAtom(activityWidgetOpenAtom);
@@ -44,63 +42,72 @@ export function SiteFooter() {
   const showActivityPill =
     samplerOn && activeView.view !== "activity";
 
-  const dataSetRef = useMemo((): DatasetRef[] => {
-    const defaultRef: DatasetRef = {
-      id: DEFAULT_SAMPLE_DATASET_ID,
-      name: createDefaultSampleDatasetMeta().name,
-    };
-    const fromPersisted = persistedDatasets.map((d) => ({
-      id: d.id,
-      name: d.name,
-    }));
-    const hasDefault = fromPersisted.some(
-      (d) => d.id === DEFAULT_SAMPLE_DATASET_ID,
-    );
-    if (hasDefault) return fromPersisted;
-    return [defaultRef, ...fromPersisted];
-  }, [persistedDatasets]);
-
   const [activeDataSetMeta, setActiveDataSetMeta] =
     useState<DatasetMeta | null>(null);
 
   const getActiveDataSet = useCallback(
     (id: uuid) => {
-      if (!activeDatasetRef) return;
-      const activeDataSetMetaResponse = dataEngine.getDatasetMetaById(
-        id ?? activeDatasetRef?.id
-      );
+      const activeDataSetMetaResponse = dataEngine.getDatasetMetaById(id);
       setActiveDataSetMeta(activeDataSetMetaResponse);
     },
-    [activeDatasetRef]
+    [],
   );
 
   useEffect(() => {
     if (activeView.view === "dashboard" && activeDatasetRef) {
       getActiveDataSet(activeDatasetRef.id);
+      return;
     }
+    setActiveDataSetMeta(null);
   }, [activeView.view, getActiveDataSet, activeDatasetRef]);
 
-  const dataSetMetaHandler = (dataset: DatasetRef | null) => {
-    if (dataset) {
-      setActiveDatasetRef(dataset);
-      getActiveDataSet(dataset?.id);
-    }
+  const handleDatasetChange = (dataset: DatasetRef | null) => {
+    if (!dataset) return;
+    setActiveDatasetRef(dataset);
+    getActiveDataSet(dataset.id);
   };
+
+  const onDashboard = activeView.view === "dashboard";
 
   return (
     <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-t transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
       <div className="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6">
-        <IconButton icon={PanelBottomOpen} variant="ghost" />
+        <IconButton
+          icon={drawerOpen ? PanelBottomClose : PanelBottomOpen}
+          variant="ghost"
+          aria-expanded={drawerOpen}
+          aria-label={
+            drawerOpen
+              ? "Close dashboard settings drawer"
+              : "Open dashboard settings drawer"
+          }
+          onClick={() => setDrawerOpen((open) => !open)}
+        />
         <Separator
           orientation="vertical"
           className="mx-2 data-[orientation=vertical]:h-4"
         />
-        <FooterRowCount rowCount={activeDataSetMeta?.records} />
-        <Separator
-          orientation="vertical"
-          className="mx-2 data-[orientation=vertical]:h-4"
-        />
-        <UploadDate date={activeDataSetMeta?.uploadDate} />
+        {onDashboard ? (
+          activeDatasetRef ? (
+            <>
+              <FooterRowCount rowCount={activeDataSetMeta?.records} />
+              <Separator
+                orientation="vertical"
+                className="mx-2 data-[orientation=vertical]:h-4"
+              />
+              <UploadDate date={activeDataSetMeta?.uploadDate} />
+            </>
+          ) : (
+            <>
+              <span className="text-muted-foreground">Rows: —</span>
+              <Separator
+                orientation="vertical"
+                className="mx-2 data-[orientation=vertical]:h-4"
+              />
+              <span className="text-muted-foreground">Upload Date: —</span>
+            </>
+          )
+        ) : null}
 
         <div className="ml-auto flex items-center gap-2">
           {showActivityPill ? (
@@ -138,15 +145,15 @@ export function SiteFooter() {
               </span>
             </button>
           ) : null}
-          {activeView.view === "dashboard" ? (
+          {onDashboard ? (
             <Combobox
-              options={dataSetRef}
+              options={datasetOptions}
               getOptionLabel={(s) => s.name}
               getOptionValue={(s) => s.id}
-              placeholder="Pick a dataset - default selected"
-              defaultValue={activeDatasetRef}
-              triggerWidthClass="w-64" // easy width control
-              onValueChange={(v) => dataSetMetaHandler(v)} // v is string | null
+              placeholder="Pick a dataset"
+              value={activeDatasetRef}
+              triggerWidthClass="w-64"
+              onValueChange={handleDatasetChange}
             />
           ) : null}
         </div>
