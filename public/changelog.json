@@ -1,6 +1,111 @@
 {
-  "version": 4,
+  "version": 5,
   "updates": [
+    {
+      "id": "2026-06-15",
+      "date": "Jun 15, 2026",
+      "title": "In-app update notifications and release hygiene",
+      "tags": ["Feature", "Chore"],
+      "sections": [
+        {
+          "title": "Update banner (PWA phase 1)",
+          "items": [
+            "Persistent bottom-right banner when a newer release is on the server; polls lightweight `version.json` with cache-safe reload.",
+            "Build syncs `version.json` from `changelog.json`, verifies `dist/` on `pnpm build`, and sets Vercel no-cache headers for manifests and `index.html`.",
+            "Dismiss hides a specific server version for the session; banner returns when a newer version ships."
+          ]
+        },
+        {
+          "title": "Developer & supply chain",
+          "items": [
+            "Cursor rules for security, exact dependency pins, Graphify-first exploration, and frontend quality guardrails.",
+            "`SECURITY.md`, Graphify skill/update scripts, and `docs/KNOWLEDGE_MAP.md`; npm deps pinned exactly via `.npmrc`.",
+            "Agent finish workflows (`add-docs`, `add-commit`, `update-test`) documented in `docs/workflows.md`."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "2026-06-14",
+      "date": "Jun 14, 2026",
+      "title": "Multi-dashboard shell, settings drawer, and route restore",
+      "tags": ["Feature", "Fix"],
+      "sections": [
+        {
+          "title": "Multi-dashboard",
+          "items": [
+            "Create and switch named dashboards from the sidebar; active dashboard restored from `#dashboard?dashboardId=` in the URL hash.",
+            "Manifest persists to localStorage with validated IndexedDB backup; bootstrap waits before URL sync so bookmarked ids are not clobbered."
+          ]
+        },
+        {
+          "title": "Dashboard settings & footer",
+          "items": [
+            "Inset bottom drawer for rename, dataset binding, viz management, and persisted `DashboardPanel` layout; blank-dashboard empty state.",
+            "Per-view footer drawer: dashboard settings or dataset info by route; live row counts when manifest metadata is missing.",
+            "URL hash wins over localStorage on reload so `#visuals`, `#dataset`, and similar routes persist."
+          ]
+        },
+        {
+          "title": "Fixes",
+          "items": [
+            "Restore chart/table loading after worker task-queue regression: bypass queued `getMeta`/`getPage` paths, seed IDB rows from manifest previews, sample series on the main thread.",
+            "RPC timeout cancel and blank-dashboard empty-state polish."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "2026-06-13",
+      "date": "Jun 13, 2026",
+      "title": "Filters engine, query planner, and chart filter UI",
+      "tags": ["Feature"],
+      "sections": [
+        {
+          "title": "Engine",
+          "items": [
+            "Worker-side filters, query planner, and task queue (roadmap slices 1d / 1f / 1g) with tests and incremental-delivery notes in `AGENTS.md`.",
+            "Per-viz filter slicing via `vizFiltersAtomFamily`; filter and `getPage` filter tests."
+          ]
+        },
+        {
+          "title": "UI",
+          "items": [
+            "`FilterPanel` mounted in the chart settings gear drawer (Phase 1d-ui) with embedded drawer styling and collapsible section spacing."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "2026-04-27",
+      "date": "Apr 27, 2026",
+      "title": "System monitor, dataset storage, and table reliability",
+      "tags": ["Feature", "Fix"],
+      "sections": [
+        {
+          "title": "System activity monitor",
+          "items": [
+            "Sampled FPS, long tasks, heap, and RPC metrics with persisted history, export bundle, and Activity page plus floating mini panel.",
+            "Worker `System.heap` / `stats` and RPC timing; data sources registered for diagnostics."
+          ]
+        },
+        {
+          "title": "Dataset & storage",
+          "items": [
+            "Fix empty table after fresh upload: safer `ensureDataset`, legacy key sweep on save/delete, prefix deletes without reading values.",
+            "Reconcile `dataset_meta` from rows when missing or empty `rowCount`; faster row deletion; save single JSON objects as one row.",
+            "`DatasetMeta` typing in upload components; Home sample generation via worker with improved effect handling; RPC protocol error handling."
+          ]
+        },
+        {
+          "title": "Tables & quality",
+          "items": [
+            "Paged grid honors column visibility (`getVisibleFlatColumns`); column picker stays open on toggle with All columns + indeterminate state.",
+            "Husky pre-push hook runs `pnpm build`; expanded Vitest coverage for data service and `DataSource` warnings."
+          ]
+        }
+      ]
+    },
     {
       "id": "2026-04-25",
       "date": "Apr 25, 2026",
