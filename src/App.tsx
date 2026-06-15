@@ -1,5 +1,6 @@
 import { ThemeProvider } from "./components/theme-provider";
 import { AppConfirmDialog } from "./components/AppConfirmDialog";
+import { AppUpdateBanner } from "./components/AppUpdateBanner";
 import { AppToast } from "./components/AppToast";
 import ViewRenderer from "./components/ViewRenderer";
 import Dashboard from "./containers/dashboard/Dashboard";
@@ -254,6 +255,7 @@ function App() {
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
       <SamplerIntervalBridge />
       <AppToast />
+      <AppUpdateBanner />
       <AppConfirmDialog />
       <Dashboard>
         <ViewRenderer />
