@@ -1,9 +1,24 @@
 import { SiteFooter } from "@/components/footer/Footer";
 import { SiteHeader } from "@/components/header/MainHeader";
 import { DashboardSettingsDrawer } from "@/components/dashboard/DashboardSettingsDrawer";
+import { DatasetInfoDrawer } from "@/components/dataset/DatasetInfoDrawer";
 import { AppSidebar } from "@/components/sidebar/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { ActivityMiniPanel } from "@/containers/activity/ActivityMiniPanel";
+import { useAtomValue } from "jotai";
+import { activeViewAtom } from "@/state/ui/view";
+
+function FooterDrawerSlot() {
+  const view = useAtomValue(activeViewAtom).view;
+
+  if (view === "dashboard") {
+    return <DashboardSettingsDrawer />;
+  }
+  if (view === "dataset") {
+    return <DatasetInfoDrawer />;
+  }
+  return null;
+}
 
 export default function DashboardLayout({
   children,
@@ -30,7 +45,7 @@ export default function DashboardLayout({
               </div>
             </div>
           </div>
-          <DashboardSettingsDrawer />
+          <FooterDrawerSlot />
         </div>
         <SiteFooter />
       </SidebarInset>

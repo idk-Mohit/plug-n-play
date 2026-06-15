@@ -19,33 +19,26 @@ function buildHash(activeView: ViewState): string {
 export function useViewSync() {
   const [activeView, setActiveView] = useAtom(activeViewAtom);
   const skipNextPush = useRef(false);
-  const lastPushedView = useRef<ViewState["view"] | null>(null);
+  const syncReady = useRef(false);
 
   useEffect(() => {
     const fromHash = parseViewFromHash(location.hash);
-    if (!fromHash) return;
-    skipNextPush.current = true;
-    setActiveView(fromHash);
+    if (fromHash) {
+      skipNextPush.current = true;
+      setActiveView(fromHash);
+    }
+    syncReady.current = true;
   }, [setActiveView]);
 
   useEffect(() => {
+    if (!syncReady.current) return;
     if (skipNextPush.current) {
       skipNextPush.current = false;
       return;
     }
     const next = buildHash(activeView);
     if (location.hash === next) return;
-
-    const viewChanged =
-      lastPushedView.current !== null &&
-      lastPushedView.current !== activeView.view;
-    lastPushedView.current = activeView.view;
-
-    if (viewChanged) {
-      history.pushState(activeView, "", next);
-    } else {
-      history.replaceState(activeView, "", next);
-    }
+    history.replaceState(activeView, "", next);
   }, [activeView]);
 
   useEffect(() => {
@@ -53,7 +46,6 @@ export function useViewSync() {
       const fromHash = parseViewFromHash(location.hash);
       if (!fromHash) return;
       skipNextPush.current = true;
-      lastPushedView.current = fromHash.view;
       setActiveView(fromHash);
     };
     window.addEventListener("popstate", handlePop);

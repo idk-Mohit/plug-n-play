@@ -2,7 +2,7 @@ import { LayoutDashboard } from "lucide-react";
 import { useSetAtom } from "jotai";
 
 import { Button } from "@/components/ui/button";
-import { dashboardDrawerOpenAtom } from "@/state/ui/layout";
+import { footerDrawerOpenAtom } from "@/state/ui/layout";
 
 type EmptyDashboardSectionProps = {
   dashboardName?: string;
@@ -12,7 +12,7 @@ type EmptyDashboardSectionProps = {
 export function EmptyDashboardSection({
   dashboardName,
 }: EmptyDashboardSectionProps) {
-  const setDrawerOpen = useSetAtom(dashboardDrawerOpenAtom);
+  const setDrawerOpen = useSetAtom(footerDrawerOpenAtom);
 
   return (
     <section

@@ -2,7 +2,7 @@ import { Separator } from "@/components/ui/separator";
 import { PanelBottomClose, PanelBottomOpen } from "lucide-react";
 import IconButton from "../IconButton";
 import { Combobox } from "../ui/combobox";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAtom, useAtomValue } from "jotai";
 import { computeHealth } from "@/core/system/health";
 import { cn } from "@/lib/utils";
@@ -13,12 +13,14 @@ import {
 } from "@/state/system/atoms";
 import {
   activeDatasetAtom,
+  persistedDatasetsAtom,
   type DatasetMeta,
 } from "@/state/data/dataset";
 import type { DatasetRef } from "@/core/rpc/controllers/datasources";
 import { useDatasetOptions } from "@/hooks/useDatasetOptions";
+import { useDatasetLiveRowCount } from "@/hooks/useDatasetLiveRowCount";
 import { activeViewAtom } from "@/state/ui/view";
-import { dashboardDrawerOpenAtom } from "@/state/ui/layout";
+import { footerDrawerOpenAtom } from "@/state/ui/layout";
 import { dataEngine } from "@/core/data-engine";
 import type { uuid } from "@/types/data.types";
 import { FooterRowCount, UploadDate } from "./FooterAtoms";
@@ -26,40 +28,73 @@ import { FooterRowCount, UploadDate } from "./FooterAtoms";
 export function SiteFooter() {
   const activeView = useAtomValue(activeViewAtom);
   const [activeDatasetRef, setActiveDatasetRef] = useAtom(activeDatasetAtom);
+  const persistedDatasets = useAtomValue(persistedDatasetsAtom);
   const datasetOptions = useDatasetOptions();
-  const [drawerOpen, setDrawerOpen] = useAtom(dashboardDrawerOpenAtom);
+  const [drawerOpen, setDrawerOpen] = useAtom(footerDrawerOpenAtom);
   const samplerOn = useAtomValue(samplerEnabledAtom);
   const live = useAtomValue(liveSampleAtom);
   const [widgetOpen, setWidgetOpen] = useAtom(activityWidgetOpenAtom);
   const health = computeHealth(live);
 
+  const view = activeView.view;
+  const onDashboard = view === "dashboard";
+  const onDataset = view === "dataset";
+  const showDrawerButton = onDashboard || onDataset;
+  const showDatasetMeta = onDashboard || onDataset;
+
+  const prevViewRef = useRef(view);
+
   useEffect(() => {
-    if (activeView.view === "activity") {
+    if (view === "activity") {
       setWidgetOpen(false);
     }
-  }, [activeView.view, setWidgetOpen]);
-
-  const showActivityPill =
-    samplerOn && activeView.view !== "activity";
-
-  const [activeDataSetMeta, setActiveDataSetMeta] =
-    useState<DatasetMeta | null>(null);
-
-  const getActiveDataSet = useCallback(
-    (id: uuid) => {
-      const activeDataSetMetaResponse = dataEngine.getDatasetMetaById(id);
-      setActiveDataSetMeta(activeDataSetMetaResponse);
-    },
-    [],
-  );
+  }, [view, setWidgetOpen]);
 
   useEffect(() => {
-    if (activeView.view === "dashboard" && activeDatasetRef) {
-      getActiveDataSet(activeDatasetRef.id);
+    if (prevViewRef.current !== view) {
+      setDrawerOpen(false);
+      prevViewRef.current = view;
+    }
+  }, [view, setDrawerOpen]);
+
+  const showActivityPill = samplerOn && view !== "activity";
+
+  const datasetIdForFooter = useMemo(() => {
+    if (onDashboard) return activeDatasetRef?.id ?? null;
+    if (onDataset) return activeView.meta?.datasetId ?? null;
+    return null;
+  }, [onDashboard, onDataset, activeDatasetRef?.id, activeView.meta?.datasetId]);
+
+  const liveRowCount = useDatasetLiveRowCount(
+    showDatasetMeta ? datasetIdForFooter : null,
+  );
+
+  const persistedMeta = useMemo(
+    () =>
+      datasetIdForFooter
+        ? persistedDatasets.find((d) => d.id === datasetIdForFooter)
+        : undefined,
+    [datasetIdForFooter, persistedDatasets],
+  );
+
+  const [engineMeta, setEngineMeta] = useState<DatasetMeta | null>(null);
+
+  const getActiveDataSet = useCallback((id: uuid) => {
+    const activeDataSetMetaResponse = dataEngine.getDatasetMetaById(id);
+    setEngineMeta(activeDataSetMetaResponse);
+  }, []);
+
+  useEffect(() => {
+    if (!showDatasetMeta || !datasetIdForFooter) {
+      setEngineMeta(null);
       return;
     }
-    setActiveDataSetMeta(null);
-  }, [activeView.view, getActiveDataSet, activeDatasetRef]);
+    getActiveDataSet(datasetIdForFooter);
+  }, [showDatasetMeta, datasetIdForFooter, getActiveDataSet]);
+
+  const footerMeta = engineMeta ?? persistedMeta ?? null;
+  const displayRowCount = footerMeta?.records ?? liveRowCount ?? null;
+  const displayUploadDate = footerMeta?.uploadDate ?? null;
 
   const handleDatasetChange = (dataset: DatasetRef | null) => {
     if (!dataset) return;
@@ -67,46 +102,50 @@ export function SiteFooter() {
     getActiveDataSet(dataset.id);
   };
 
-  const onDashboard = activeView.view === "dashboard";
+  const drawerOpenLabel = onDataset
+    ? drawerOpen
+      ? "Close dataset info drawer"
+      : "Open dataset info drawer"
+    : drawerOpen
+      ? "Close dashboard settings drawer"
+      : "Open dashboard settings drawer";
 
   return (
     <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-t transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
       <div className="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6">
-        <IconButton
-          icon={drawerOpen ? PanelBottomClose : PanelBottomOpen}
-          variant="ghost"
-          aria-expanded={drawerOpen}
-          aria-label={
-            drawerOpen
-              ? "Close dashboard settings drawer"
-              : "Open dashboard settings drawer"
-          }
-          onClick={() => setDrawerOpen((open) => !open)}
-        />
-        <Separator
-          orientation="vertical"
-          className="mx-2 data-[orientation=vertical]:h-4"
-        />
-        {onDashboard ? (
-          activeDatasetRef ? (
-            <>
-              <FooterRowCount rowCount={activeDataSetMeta?.records} />
-              <Separator
-                orientation="vertical"
-                className="mx-2 data-[orientation=vertical]:h-4"
-              />
-              <UploadDate date={activeDataSetMeta?.uploadDate} />
-            </>
-          ) : (
-            <>
+        {showDrawerButton ? (
+          <>
+            <IconButton
+              icon={drawerOpen ? PanelBottomClose : PanelBottomOpen}
+              variant="ghost"
+              aria-expanded={drawerOpen}
+              aria-label={drawerOpenLabel}
+              onClick={() => setDrawerOpen((open) => !open)}
+            />
+            <Separator
+              orientation="vertical"
+              className="mx-2 data-[orientation=vertical]:h-4"
+            />
+          </>
+        ) : null}
+
+        {showDatasetMeta ? (
+          <>
+            {displayRowCount != null ? (
+              <FooterRowCount rowCount={displayRowCount} />
+            ) : (
               <span className="text-muted-foreground">Rows: —</span>
-              <Separator
-                orientation="vertical"
-                className="mx-2 data-[orientation=vertical]:h-4"
-              />
+            )}
+            <Separator
+              orientation="vertical"
+              className="mx-2 data-[orientation=vertical]:h-4"
+            />
+            {displayUploadDate ? (
+              <UploadDate date={displayUploadDate} />
+            ) : (
               <span className="text-muted-foreground">Upload Date: —</span>
-            </>
-          )
+            )}
+          </>
         ) : null}
 
         <div className="ml-auto flex items-center gap-2">

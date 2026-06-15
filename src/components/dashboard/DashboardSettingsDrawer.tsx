@@ -37,7 +37,7 @@ import {
   removePanelFromDashboard,
   VIZ_CHART_CATALOG,
 } from "@/state/data/dashboard-layout";
-import { dashboardDrawerOpenAtom } from "@/state/ui/layout";
+import { footerDrawerOpenAtom } from "@/state/ui/layout";
 import { chartSettingsAtomFamily } from "@/state/ui/chart-setting";
 import { useDatasetOptions } from "@/hooks/useDatasetOptions";
 import { VizTypeGallery } from "@/components/dashboard/VizTypeGallery";
@@ -56,7 +56,7 @@ function panelLabel(panel: DashboardPanel): string {
  */
 export function DashboardSettingsDrawer() {
   const store = useStore();
-  const [open, setOpen] = useAtom(dashboardDrawerOpenAtom);
+  const [open, setOpen] = useAtom(footerDrawerOpenAtom);
   const [dashboards, setDashboards] = useAtom(persistedDashboardsAtom);
   const activeDashboardId = useAtomValue(activeDashboardIdAtom);
   const activeDashboard = resolveActiveDashboard(

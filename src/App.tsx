@@ -38,8 +38,7 @@ import {
   DEFAULT_SAMPLE_DATASET_ID,
   isDefaultSampleDatasetId,
 } from "@/state/data/defaultSampleDataset";
-import { activeViewAtom } from "@/state/ui/view";
-import { parseViewFromHash } from "@/state/ui/view-hash";
+import { parseViewFromHash, resolveViewFromLocation } from "@/state/ui/view-hash";
 import {
   hydrateHistoryFromIdb,
   normalizeSamplerIntervalMs,
@@ -220,7 +219,7 @@ function App() {
         const storedActiveId = store.get(activeDashboardIdAtom);
         const fromHash = parseViewFromHash(location.hash);
         const hashDashboardId = fromHash?.meta?.dashboardId;
-        const storedView = store.get(activeViewAtom);
+        const storedView = resolveViewFromLocation();
         const metaDashboardId = storedView.meta?.dashboardId;
         const preferredId = hashDashboardId ?? metaDashboardId ?? storedActiveId;
 

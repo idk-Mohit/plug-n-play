@@ -15,5 +15,5 @@ import { atom } from "jotai";
  */
 export const sidebarTransitionAtom = atom(false);
 
-/** Bottom dashboard settings drawer (footer PanelBottomOpen + empty-state CTA). */
-export const dashboardDrawerOpenAtom = atom(false);
+/** Bottom footer drawer (dashboard settings, dataset info, etc.). */
+export const footerDrawerOpenAtom = atom(false);
