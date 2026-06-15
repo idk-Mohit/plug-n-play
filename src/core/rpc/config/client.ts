@@ -52,15 +52,21 @@ export class MiniGrpc {
 
     let to: ReturnType<typeof setTimeout> | null = null;
     let rejectP: ((e: unknown) => void) | undefined;
+    let settled = false;
 
     const respP = new Promise<RpcResponse>((resolve, reject) => {
       rejectP = reject;
       this.inflight.set(id, (msg: RpcResponse) => {
+        if (settled) return;
+        settled = true;
         this.inflight.delete(id);
         resolve(msg);
       });
       to = setTimeout(() => {
+        if (settled) return;
+        settled = true;
         this.inflight.delete(id);
+        this.w.postMessage({ v: V, cancel: true, id });
         reject(new Error(`RPC timeout: ${svc}.${method}`));
       }, timeoutMs);
     });

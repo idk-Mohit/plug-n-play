@@ -4,6 +4,7 @@ import { useAtomValue, useSetAtom } from "jotai";
 import { DataSource } from "@/core/data-source/DataSource";
 import type { DataSourcePolicy, GetRowResult } from "@/core/data-source/types";
 import { getEngineRpc } from "@/core/rpc/engineSingleton";
+import { vizFiltersAtomFamily } from "@/state/data/filters";
 import { dataSourceVersionAtomFamily } from "@/state/ui/viewport";
 import type { AnyRecord } from "@/types/data.types";
 
@@ -16,12 +17,14 @@ type GetPageRpcResult = {
 
 /**
  * Memory-bounded paged rows for tables (see docs/design/memory-bounded-data-source.md).
+ * Shares the dashboard dataset; per-viz filters slice rows independently.
  */
 export function useDataSource(
   vizId: string,
   args: { datasetId: string | null; policy?: DataSourcePolicy },
 ) {
   const { datasetId, policy } = args;
+  const filters = useAtomValue(vizFiltersAtomFamily(vizId));
   const dsRef = useRef<DataSource<AnyRecord> | null>(null);
   const [loading, setLoading] = useState(() => !!args.datasetId);
 
@@ -44,7 +47,7 @@ export function useDataSource(
         const r = await getEngineRpc().call<GetPageRpcResult>(
           "Data",
           "getPage",
-          [{ datasetId, offset, limit }],
+          [{ datasetId, offset, limit, filters }],
           { signal },
         );
         return {
@@ -71,6 +74,7 @@ export function useDataSource(
   }, [
     datasetId,
     vizId,
+    filters,
     policy?.bandPages,
     policy?.overscanPages,
     policy?.pageSize,

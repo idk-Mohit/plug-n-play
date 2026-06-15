@@ -30,6 +30,7 @@ import { dataEngine } from "@/core/data-engine";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { safeFormatDate } from "@/core/date.utils";
 import { activeViewAtom } from "@/state/ui/view";
+import { datasetViewState } from "@/state/ui/view-hash";
 import DatasourceItem from "./DatasourceItem";
 import {
   DEFAULT_SAMPLE_DATASET_ID,
@@ -225,13 +226,8 @@ export function DatasourceList() {
           <DialogFooter>
             <IconButton
               onClick={() => {
-                setView({
-                  view: "dataset",
-                  meta: {
-                    datasetId: expandedDataset ?? undefined,
-                    tab: "preview",
-                  },
-                });
+                if (!expandedDataset) return;
+                setView(datasetViewState(expandedDataset, "preview"));
                 // location.hash = `#${expandedDataset}`;
               }}
               icon={Fullscreen}

@@ -118,8 +118,8 @@ export function FormWrapper<T extends object = Record<string, unknown>>({
             </span>
             <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
           </CollapsibleTrigger>
-          <CollapsibleContent className="border-t border-border/40 bg-background/40 px-3 pb-3 pt-2.5">
-            {renderSectionBody(section)}
+          <CollapsibleContent className="border-t border-border/40 bg-background/40 px-3 pb-3 pt-3.5">
+            <div className="space-y-2.5">{renderSectionBody(section)}</div>
           </CollapsibleContent>
         </Collapsible>
       );

@@ -1,0 +1,82 @@
+---
+description: React + Vite performance rules (Vite-only subset of Vercel React best practices)
+globs: src/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# React + Vite performance
+
+Plug & Play is **Vite + React 19**, not Next.js. Vercel React best-practice rules that target **server components, RSC props, `next/dynamic`, `after()`, app-router fetch parallelization** do **not** apply here. The rules below are the subset that does.
+
+Complements [`40-performance-guardrails`](./40-performance-guardrails.mdc); does not replace it.
+
+## Re-render discipline (highest impact)
+
+- **Derive state during render, not in `useEffect`** that calls `setState`. The latter creates loops and extra paints.
+- **Don't subscribe to state used only in callbacks** — read it from a ref inside the handler instead.
+- **Functional `setState` for stable callbacks**: `setX(prev => …)` lets you `useCallback` without `x` in deps.
+- **Split hooks with independent dependencies.** One big `useEffect` is harder to optimize than three small ones.
+- **Hoist defaults that are objects / arrays** outside the component, or memoize them. Inline `{}` / `[]` defaults re-create every render.
+- **Use `useDeferredValue` / `startTransition`** for expensive renders that shouldn't block input.
+- **Use refs for transient high-frequency values** (drag positions, mouse coords) — never state.
+- **Never define a component inside another component.** It remounts every parent render.
+- **Don't `memo` cheap primitives or simple expressions.** `memo` has its own cost.
+- **Extract expensive subtrees into memoized components** with stable props.
+- **Use `useEffectEvent`** (React 19) for "event-y" callbacks that an effect must call.
+
+## Rendering performance
+
+- **`content-visibility: auto`** on long off-screen lists — cheap built-in virtualization.
+- **Hoist static JSX** out of components (e.g. icon literals at module level).
+- **Reduce SVG coordinate precision** — 1 decimal is usually enough; saves bytes and paint cost.
+- **Ternary over `&&`** for conditional rendering of arrays / numbers (avoids `0` and `''` leaking into the tree).
+- **Resource hints**: `preload`, `prefetch`, `preconnect` via React DOM APIs for critical assets.
+- **Animate a wrapper div, not the `<svg>` element** itself (see `60-frontend-quality`).
+- **Defer scripts**: `defer` or `async` on `<script>` tags.
+
+## JavaScript performance (hot paths only)
+
+Apply these only where a profiler shows real cost — don't pre-optimize cold paths.
+
+- **`Map` / `Set` for repeated lookups** (O(1) vs O(n)).
+- **Cache property access in tight loops**: `const arr = obj.arr; for (...)` not `for (... obj.arr[i] ...)`.
+- **Combine `filter + map + forEach`** into a single pass when chained.
+- **Check array `.length` before expensive per-element comparisons.**
+- **Early-exit** from functions.
+- **Hoist `RegExp` outside loops.**
+- **Use loops for min / max** instead of `Array.sort()[0]`.
+- **`Array.prototype.toSorted()`** for immutable sort.
+- **`flatMap`** to map-and-filter in one pass.
+- **`requestIdleCallback`** for non-critical background work.
+- **No DOM measurement in render**: `getBoundingClientRect`, `offsetHeight`, `offsetWidth`, `scrollTop` belong in refs / effects, not in JSX.
+- **Cache `localStorage` / `sessionStorage` reads** — they hit disk.
+- **Batch DOM and CSS changes** via class swap or `cssText`.
+
+## Client-side data discipline
+
+- **Deduplicate global listeners.** One app-level `resize` handler, not one per component.
+- **Passive listeners for scroll / touch / wheel**: `{ passive: true }`.
+- **Version and minimize `localStorage` data.** Treat reads as untrusted (the data may be from an older version).
+- **Cache function results** in a module-level `Map` when input space is small and pure.
+
+## Effects
+
+- **Stable primitive dependencies.** Don't depend on a freshly-allocated object or array.
+- **Put interaction logic in event handlers**, not effects.
+- **Lazy state init**: `useState(() => expensive())` not `useState(expensive())`.
+
+## Advanced
+
+- **Store event handlers in refs** (`useLatest` pattern) when an effect needs to call a callback whose deps change frequently.
+- **Initialize app-wide singletons once per app load**, not per component mount.
+
+## Repo-specific reminders
+
+- Chart and table render paths are the hot paths. See `src/d3-core/`, `src/components/table/`, and existing rules `30-d3-core` and `40-performance-guardrails`.
+- Heavy work belongs in `src/compute/` or `src/engine/` (workers), not in render or effects.
+- RPC calls via `getEngineRpc()` are cancellable — pass an `AbortSignal` (see `src/core/rpc/config/protocol.ts`).
+- Default sample data uses WASM via `src/compute/`; don't accidentally re-generate on every render.
+
+## What we deliberately don't import from Vercel's list
+
+Rules tagged `async-*`, `bundle-*` (Next-specific), `server-*`, `rendering-hydration-*`, and `client-swr-dedup` either don't apply (we have no Node server, no RSC, no SWR) or are handled differently (we use our own RPC + AbortSignal pattern instead of SWR's `fetcher` deduplication).

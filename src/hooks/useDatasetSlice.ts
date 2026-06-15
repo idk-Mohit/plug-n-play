@@ -10,6 +10,7 @@ import { generateSeries } from "@/compute";
 import { ChartType } from "@/enums/chart.enums";
 import { activeDatasetAtom } from "@/state/data/dataset";
 import { isDefaultSampleDatasetId } from "@/state/data/defaultSampleDataset";
+import { vizFiltersAtomFamily } from "@/state/data/filters";
 import { chartSettingsAtomFamily } from "@/state/ui/chart-setting";
 import { chartViewportAtomFamily } from "@/state/ui/viewport";
 import type { timeseriesdata } from "@/types/data.types";
@@ -31,10 +32,12 @@ const DEBOUNCE_MS = 80;
 
 /**
  * Loads a downsampled window for the cartesian chart via engine worker + IndexedDB.
- * Resets viewport when the active dataset id changes.
+ * All charts share the dashboard dataset (`activeDatasetAtom`); each chartId gets its
+ * own viewport and row filters so panels can show different slices of the same data.
  */
 export function useDatasetSlice(chartId: string) {
   const active = useAtomValue(activeDatasetAtom);
+  const filters = useAtomValue(vizFiltersAtomFamily(chartId));
   const chartType = useAtomValue(chartSettingsAtomFamily(chartId)).type;
   const [viewport, setViewport] = useAtom(chartViewportAtomFamily(chartId));
   const [data, setData] = useState<timeseriesdata[]>([]);
@@ -77,7 +80,10 @@ export function useDatasetSlice(chartId: string) {
       };
     }
 
+    let cancelled = false;
+
     const run = async () => {
+      if (cancelled) return;
       setLoading(true);
       setError(null);
       try {
@@ -85,9 +91,10 @@ export function useDatasetSlice(chartId: string) {
         const meta = await rpc.call<DataDatasetMeta>("Data", "getMeta", [
           datasetId,
         ]);
+        if (cancelled) return;
+
         if (!meta.xRange) {
           setData([]);
-          setLoading(false);
           return;
         }
         const [x0, x1] = meta.xRange;
@@ -111,15 +118,18 @@ export function useDatasetSlice(chartId: string) {
               toMs: vp.toMs,
               buckets: vp.buckets,
               method,
+              filters,
             },
           ],
         );
+        if (cancelled) return;
         setData(result.points);
       } catch (e) {
+        if (cancelled) return;
         setError(e instanceof Error ? e : new Error(String(e)));
         setData([]);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
@@ -130,9 +140,10 @@ export function useDatasetSlice(chartId: string) {
     }, DEBOUNCE_MS);
 
     return () => {
+      cancelled = true;
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [datasetId, chartType, viewport, setViewport]);
+  }, [datasetId, chartType, viewport, setViewport, filters]);
 
   return { data, loading, error, viewport, setViewport };
 }

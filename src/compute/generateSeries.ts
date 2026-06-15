@@ -1,8 +1,8 @@
 /**
- * Worker-backed sample series generation (Vite `?worker` bundle).
+ * Sample series generation — main thread (reliable; worker/WASM optional later).
  */
+import { generateSampleSeriesSync } from "./generateSampleSeriesSync";
 import type { timeseriesdata } from "@/types/data.types";
-import DataWorker from "./workers/dataWorker.ts?worker";
 
 export type GenerateSeriesMetadata = {
   count: number;
@@ -18,34 +18,14 @@ export type GenerateSeriesResult = {
 export function generateSeries(payload: {
   count: number;
 }): Promise<GenerateSeriesResult> {
-  return new Promise((resolve, reject) => {
-    const worker = new DataWorker();
-
-    worker.onmessage = (e: MessageEvent) => {
-      const d = e.data as {
-        status?: string;
-        data?: timeseriesdata[];
-        metadata?: GenerateSeriesMetadata;
-        message?: string;
-      };
-      if (d?.status === "working") return;
-      if (d?.status === "success" && d.data && d.metadata) {
-        worker.terminate();
-        resolve({ data: d.data, metadata: d.metadata });
-        return;
-      }
-      if (d?.status === "error") {
-        worker.terminate();
-        reject(new Error(String(d.message ?? "Data worker error")));
-      }
-    };
-
-    worker.onerror = (ev) => {
-      worker.terminate();
-      reject(ev.error ?? new Error("Worker failed to load"));
-    };
-
-    worker.postMessage({ task: "generate_series", payload });
+  const data = generateSampleSeriesSync(payload.count);
+  return Promise.resolve({
+    data,
+    metadata: {
+      count: data.length,
+      generatedAt: new Date().toISOString(),
+      source: "javascript",
+    },
   });
 }
 

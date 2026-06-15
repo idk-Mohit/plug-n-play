@@ -28,17 +28,27 @@ import type {
   DataGetPageArgs,
   DataGetPreviewArgs,
   DataGetRangeArgs,
+  DataQueryRequest,
   DataSaveArgs,
   DataDatasetMeta,
 } from "@/core/rpc/data-contract";
 import type { RpcRequest } from "@/core/rpc/config/protocol";
 import type { timeseriesdata } from "@/types/data.types";
 import { streamingBucketAggregate, streamingLttb } from "@/engine/aggregations/streaming";
+import { applyFiltersToRow } from "@/engine/services/filter.utils";
+import { planQuery } from "@/engine/query.planner";
 
 import { ok, err } from "@/engine/rpcResponse";
+import {
+  isDashboardManifest,
+  parseDashboardManifest,
+} from "@/core/rpc/dashboard-record.guard";
 
 /** Must match {@link DATASETS_MANIFEST_IDB_KEY} in dataset-storage (avoid importing Jotai into worker). */
 const DATASETS_MANIFEST_IDB_KEY = "datasources-manifest";
+
+/** Must match {@link DASHBOARDS_MANIFEST_IDB_KEY} in dashboard-storage. */
+const DASHBOARDS_MANIFEST_IDB_KEY = "dashboards-manifest";
 
 const META_VERSION = 1 as const;
 
@@ -127,6 +137,12 @@ async function ensureDataset(datasetId: string): Promise<DatasetMetaRecord> {
     return meta;
   }
 
+  /** Manifest lists dataset but row store empty — seed from slim preview backup in IDB. */
+  const fromManifest = await tryRecoverRowsFromIdbManifestPreview(datasetId);
+  if (fromManifest) {
+    return fromManifest;
+  }
+
   if (existing) {
     return existing;
   }
@@ -135,11 +151,38 @@ async function ensureDataset(datasetId: string): Promise<DatasetMetaRecord> {
   return { ...EMPTY_META };
 }
 
+/** When IDB rows are missing but manifest backup still has preview rows, re-seed the row store. */
+async function tryRecoverRowsFromIdbManifestPreview(
+  datasetId: string,
+): Promise<DatasetMetaRecord | null> {
+  const manifest = await idbGet<unknown>(DATASETS_MANIFEST_IDB_KEY);
+  if (!Array.isArray(manifest)) return null;
+  const entry = manifest.find(
+    (m): m is Record<string, unknown> =>
+      m !== null &&
+      typeof m === "object" &&
+      String((m as { id?: unknown }).id) === datasetId,
+  );
+  if (!entry) return null;
+  const preview = entry.preview;
+  if (!Array.isArray(preview) || preview.length === 0) return null;
+  const rows = preview as unknown[];
+  const { xRange } = await idbBulkWriteRows(datasetId, rows);
+  const meta: DatasetMetaRecord = {
+    version: META_VERSION,
+    rowCount: rows.length,
+    xRange,
+  };
+  await idbPutMeta(datasetId, meta);
+  return meta;
+}
+
 async function* iterTsInRangeAsc(
   datasetId: string,
   fromMs: number,
   toMs: number,
   signal?: AbortSignal,
+  filters?: DataGetRangeArgs["filters"],
 ): AsyncGenerator<timeseriesdata, void, undefined> {
   for await (const payload of idbIterateTimeRangePayloads(
     datasetId,
@@ -148,6 +191,7 @@ async function* iterTsInRangeAsc(
     "next",
     signal,
   )) {
+    if (!applyFiltersToRow(payload, filters)) continue;
     const p = toTimeseriesRow(payload);
     if (p) yield p;
   }
@@ -218,6 +262,7 @@ export async function getRange(req: RpcRequest) {
       dir,
       signal,
     )) {
+      if (!applyFiltersToRow(payload, arg.filters)) continue;
       const p = toTimeseriesRow(payload);
       if (!p) continue;
       const t = Date.parse(String(p.x));
@@ -259,8 +304,11 @@ export async function getPage(req: RpcRequest) {
       limit,
       signal,
     );
+    const rows = arg.filters?.length
+      ? slice.filter((row) => applyFiltersToRow(row, arg.filters))
+      : slice;
     return ok(req.id, {
-      rows: slice,
+      rows,
       total: meta.rowCount,
       offset,
       limit,
@@ -296,7 +344,13 @@ export async function getAggregated(req: RpcRequest) {
     }
 
     const makeIter = () =>
-      iterTsInRangeAsc(arg.datasetId, arg.fromMs, arg.toMs, signal);
+      iterTsInRangeAsc(
+        arg.datasetId,
+        arg.fromMs,
+        arg.toMs,
+        signal,
+        arg.filters,
+      );
 
     let points: timeseriesdata[];
     if (method === "lttb") {
@@ -320,6 +374,35 @@ export async function getAggregated(req: RpcRequest) {
     const message = e instanceof Error ? e.message : String(e);
     return err(req.id, "E_INTERNAL", message);
   }
+}
+
+const queryRouteHandlers: Record<
+  string,
+  (req: RpcRequest) => Promise<unknown>
+> = {
+  "Data.getMeta": getMeta,
+  "Data.getPage": getPage,
+  "Data.getRange": getRange,
+  "Data.getAggregated": getAggregated,
+};
+
+export async function executeQuery(req: RpcRequest) {
+  const request = req.args?.[0] as DataQueryRequest;
+  if (!request || typeof request.datasetId !== "string") {
+    return err(req.id, "E_BAD_REQUEST", "executeQuery: request required");
+  }
+  const plan = planQuery(request);
+  const handler = queryRouteHandlers[plan.route];
+  if (!handler) {
+    return err(req.id, "E_NOT_FOUND", `No handler for ${plan.route}`);
+  }
+  const inner: RpcRequest = {
+    ...req,
+    svc: plan.route.split(".")[0],
+    method: plan.route.split(".")[1],
+    args: plan.args as unknown[],
+  };
+  return handler(inner);
 }
 
 export async function save(req: RpcRequest) {
@@ -395,6 +478,36 @@ export async function saveManifest(req: RpcRequest) {
   }
 }
 
+/** Worker RPC: read validated dashboard list from IndexedDB (`dashboards-manifest`). */
+export async function getDashboardManifest(req: RpcRequest) {
+  try {
+    const v = await idbGet<unknown>(DASHBOARDS_MANIFEST_IDB_KEY);
+    return ok(req.id, parseDashboardManifest(v));
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    return err(req.id, "E_INTERNAL", message);
+  }
+}
+
+/** Worker RPC: persist dashboard list to IndexedDB; main thread mirrors via dashboard-storage. */
+export async function saveDashboardManifest(req: RpcRequest) {
+  const manifest = req.args?.[0];
+  if (!isDashboardManifest(manifest)) {
+    return err(
+      req.id,
+      "E_BAD_REQUEST",
+      "saveDashboardManifest: invalid dashboard manifest",
+    );
+  }
+  try {
+    await idbSave(DASHBOARDS_MANIFEST_IDB_KEY, manifest);
+    return ok(req.id, true);
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    return err(req.id, "E_INTERNAL", message);
+  }
+}
+
 export async function listDatasetKeys(req: RpcRequest) {
   try {
     const keys = await idbListDatasetKeys();
@@ -410,6 +523,7 @@ export async function clearAll(req: RpcRequest) {
     await idbClearRowsAndMeta();
     await idbDeleteAllLegacyDatasetPrefixedKeys();
     await idbDelete(DATASETS_MANIFEST_IDB_KEY);
+    await idbDelete(DASHBOARDS_MANIFEST_IDB_KEY);
     return ok(req.id, true);
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);

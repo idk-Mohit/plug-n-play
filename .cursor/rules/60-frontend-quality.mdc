@@ -1,0 +1,114 @@
+---
+description: Frontend quality bar — accessibility, motion, content, anti-AI-slop aesthetics
+globs: src/**/*.{ts,tsx,css}
+alwaysApply: false
+---
+
+# Frontend quality bar
+
+Distills the **Vercel Web Interface Guidelines** plus aesthetic principles from the `frontend-design` skill. Builds on [`docs/UI_THEME.md`](../../docs/UI_THEME.md). Use **shadcn/ui primitives in `src/components/ui/`** first; compose upward.
+
+The rules below are the floor. Exceed them when the design calls for it.
+
+## Aesthetic intent (no AI slop)
+
+- **Commit to one direction** per surface: brutally minimal, editorial, refined, industrial, technical-precise. Don't fence-sit between aesthetics.
+- **Avoid the generic AI look**: Inter / Roboto / Arial defaults, lavender-on-white gradients, evenly distributed pastel palettes, predictable card grids. Use distinctive choices that fit *this* product — data-dense, fast, technical.
+- **Typography**: pair a distinctive display face with a refined body face. Use a mono face for numeric tables and code. Always `font-variant-numeric: tabular-nums` on number columns.
+- **Spacing > decoration.** White space, intentional asymmetry, and controlled density beat decorative effects.
+- **Motion**: one well-orchestrated reveal beats scattered micro-interactions. Animate only `transform` and `opacity`. Never `transition: all`.
+
+## Accessibility (floor)
+
+- Icon-only buttons: `aria-label`.
+- Form controls: `<label>` (with `htmlFor`) or `aria-label`. Label is clickable.
+- Interactive non-buttons get `onKeyDown` handlers; prefer `<button>` / `<a>` first.
+- Async updates (toasts, validation): `aria-live="polite"`.
+- Decorative icons: `aria-hidden="true"`.
+- Images: explicit `width` and `height`; `alt` (or `alt=""` if decorative).
+- Headings hierarchical (`h1` → `h2` → `h3`); include a skip-to-main link; `scroll-margin-top` on heading anchors.
+- Use semantic HTML (`button`, `nav`, `main`, `section`) before ARIA.
+
+## Focus & input
+
+- Every interactive element has visible `:focus-visible`. Never `outline: none` without a replacement.
+- Use `:focus-visible` over `:focus` (no focus ring on click).
+- Inputs: correct `type` (`email`, `tel`, `url`, `number`) and `inputmode`; meaningful `name`; `autocomplete` where appropriate.
+- Don't block paste with `onPaste preventDefault`.
+- Disable spellcheck on emails, codes, usernames (`spellCheck={false}`).
+- Submit button stays enabled until request starts; spinner during; errors inline; focus first error on submit.
+- Placeholders end with `…` and show example pattern.
+
+## Animation
+
+- Honor `prefers-reduced-motion` — provide a reduced variant or disable.
+- Animate `transform` / `opacity` only (compositor-friendly).
+- Set correct `transform-origin`.
+- For SVG, animate the wrapping `<div>` (not the `<svg>`), with `transform-box: fill-box; transform-origin: center`.
+- Animations are interruptible — respond to user input mid-animation.
+
+## Content & copy
+
+- Ellipsis `…` not `...`. Curly quotes `" "` not `" "`.
+- Loading states end with `…` (`"Loading…"`, `"Saving…"`).
+- Non-breaking spaces for units / brands: `10 MB`, `⌘ K`.
+- Active voice, second person. Specific button labels: `"Save dataset"` not `"Continue"`.
+- Error messages include a fix or next step, not just the problem.
+- `text-wrap: balance` or `text-pretty` on headings.
+
+## Content handling
+
+- Text containers handle long content: `truncate`, `line-clamp-*`, or `break-words`.
+- Flex children need `min-w-0` to allow truncation.
+- Always plan empty states. Don't render broken UI for `[]` or `""`.
+- User-generated content: anticipate short, average, and very long inputs.
+
+## Images
+
+- Explicit `width`/`height` (prevents CLS).
+- Below-fold: `loading="lazy"`. Above-fold critical: `fetchpriority="high"`.
+
+## Touch & layout
+
+- `touch-action: manipulation` on tappable elements (kills 300ms tap delay).
+- `overscroll-behavior: contain` on modals / drawers / sheets.
+- Full-bleed layouts use `env(safe-area-inset-*)`.
+- Layout via flex / grid, not JS measurement.
+- During drag: disable text selection; `inert` on dragged elements.
+
+## URL & navigation
+
+- URL reflects state: filters, tabs, dataset id, pagination, expanded panels. Deep-link anything stateful.
+- Use `<a href>` / `<Link>` for navigation (preserves Cmd/Ctrl+click, middle-click, copy link).
+- Destructive actions need confirmation or undo — never immediate.
+
+## Dark mode & theming
+
+- `color-scheme: dark` on `<html>` (fixes scrollbars and native inputs).
+- `<select>`: explicit `background-color` and `color` (Windows dark mode).
+- `<meta name="theme-color">` matches page background.
+
+## Locale & i18n
+
+- Dates / times: `Intl.DateTimeFormat`. Numbers / currency: `Intl.NumberFormat`. Never hardcode formats.
+- Brand names, code tokens, identifiers: wrap with `translate="no"`.
+
+## Hydration safety
+
+- Inputs with `value` need `onChange` (or use `defaultValue` for uncontrolled).
+- Date / time rendering: guard against client-only formatting differences.
+
+## Anti-patterns (flag in review)
+
+- `user-scalable=no` or `maximum-scale=1`.
+- `transition: all`.
+- `outline-none` without focus-visible replacement.
+- `onPaste` with `preventDefault`.
+- `<div>` / `<span>` with click handlers (should be `<button>`).
+- Inline `onClick` navigation without `<a href>`.
+- Images without `width`/`height`.
+- `.map()` over >50 items without virtualization (see `40-performance-guardrails`).
+- Hardcoded date / number formats.
+- Icon buttons without `aria-label`.
+- `autoFocus` without clear justification (and never on mobile).
+- Form inputs without labels.

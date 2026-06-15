@@ -1,0 +1,59 @@
+---
+description: Data parsing, storage, RPC, and worker boundary discipline
+globs: src/core/**/*.{ts,tsx}, src/engine/**/*.{ts,tsx}, src/compute/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# Data handling (core, engine, compute)
+
+The boundary between **main thread, worker, and storage** is where most bugs and most security issues live. These rules apply to everything in `src/core/`, `src/engine/`, and `src/compute/`.
+
+## Type discipline at boundaries
+
+- **Every RPC contract lives in [`src/core/rpc/data-contract.ts`](../../src/core/rpc/data-contract.ts).** No ad-hoc payload shapes.
+- **Validate at entry on both sides.** The worker validates inbound requests; the main thread validates inbound responses. TypeScript compile-time guarantees do not survive the worker boundary.
+- **No `any` crossing the worker boundary.** Use `unknown` and narrow with a type guard.
+- **Envelope discipline.** Use the `RpcRequest` / `RpcResponse` / `RpcCancelEnvelope` shapes defined in [`src/core/rpc/config/protocol.ts`](../../src/core/rpc/config/protocol.ts). New methods extend the contract, they don't bypass it.
+
+## Parsing user input (CSV, JSON, uploads)
+
+- **Treat every byte as hostile.** Validate structure, types, and bounds before persistence or use.
+- **Stream large files.** Don't `await file.text()` on multi-MB inputs — read in chunks.
+- **Enforce row and byte caps** before persistence; reject early with a clear, actionable error.
+- **Surface skipped rows** to the user — don't silently drop invalid data.
+- **Numeric input**: parse explicitly; reject `NaN`, `Infinity`, and unrepresentable values where they matter.
+- **Dates**: parse via `Intl.DateTimeFormat` or an explicit format; never trust freeform date strings.
+
+## Storage (`src/core/storage/`)
+
+- **All reads are defensively typed and version-aware.** Data may have been written by an older app version. Validate shape, attach a `schema: <n>` field, migrate forward.
+- **Namespaced keys.** Follow the patterns in [`indexdb.ts`](../../src/core/storage/indexdb.ts) (`dataset:<id>`, `dataset:<id>:meta`, etc.). No bare keys.
+- **No PII or secrets in `localStorage`.** It's readable by every script in the page origin.
+- **OPFS for large persistent payloads (>50 MB).** IndexedDB handles metadata and small caches; OPFS handles GB-scale data.
+- **Clean up on delete.** When a dataset is removed, remove every related key (meta, chunks, manifest).
+
+## RPC (`src/core/rpc/`)
+
+- **Every long-running RPC is cancellable.** Use the `RpcCancelEnvelope` pattern; honor `AbortSignal` on both sides.
+- **No side-effect-only RPCs without idempotency.** Callers may retry on failure — design the receiver to tolerate it.
+- **Bound response sizes.** Don't return 1M rows in one RPC. Page, stream, or aggregate.
+- **Error codes are typed.** Use `E_BAD_REQUEST` / `E_INTERNAL` / `E_NOT_FOUND` from the protocol; extend the union deliberately, not ad-hoc.
+- **Don't leak internals.** Error messages are user-actionable; stack traces and internal paths stay in the worker log.
+
+## Workers (`src/engine/`)
+
+- **Stateless across requests** unless the state is explicit and documented (e.g., an open DB handle).
+- **No DOM access.** No `window`, no `document`, no `localStorage` — `indexedDB`, `fetch`, `WebSocket`, `Crypto`, OPFS only.
+- **No untrusted dynamic imports.** `import()` only from local bundled modules; never from a URL or user-supplied path.
+- **Worker code is bundled `format: "es"`** (see `vite.config.ts`). New worker entry points follow the same setup.
+
+## Compute (`src/compute/`)
+
+- **Pure functions where possible.** Easy to test, easy to move into a worker later.
+- **Bounded memory.** If a transform allocates proportional to input size, document it and add a cap. Streaming alternatives are preferred for >100K rows.
+- **Benchmarks for hot paths.** New aggregations, scanners, or planners should have a vitest assertion of the form `<X ms for N rows`. See `src/engine/aggregations/*.test.ts` for the pattern.
+- **No React, no DOM in `src/compute/`.** This layer must be runnable from a worker without modification.
+
+## When in doubt
+
+Ask: *"can this RPC be cancelled, retried, replayed, and survive a stale or malicious payload?"* If any answer is no, fix it before merging.

@@ -9,6 +9,17 @@ import { useStore } from "jotai/react";
 import { useCallback, useEffect, useRef } from "react";
 import { getEngineRpc } from "@/core/rpc/engineSingleton";
 import {
+  activeDashboardIdAtom,
+  createDefaultMainDashboard,
+  dashboardManifestHydratedAtom,
+  findDashboardById,
+  persistedDashboardsAtom,
+} from "@/state/data/dashboard";
+import {
+  fetchDashboardManifestFromIdb,
+  mergePersistedDashboardsWithIndexedDb,
+} from "@/state/data/dashboard-storage";
+import {
   activeDatasetAtom,
   persistedDatasetsAtom,
   type DatasetMeta,
@@ -20,11 +31,14 @@ import {
   hydrateMissingPreviewsFromIdb,
   isPersistedDatasourcesListEmptyInLs,
   mergePersistedDatasetsWithIndexedDbSources,
+  slimDatasetMetaForPersistence,
 } from "@/state/data/dataset-storage";
 import {
   createDefaultSampleDatasetMeta,
   DEFAULT_SAMPLE_DATASET_ID,
+  isDefaultSampleDatasetId,
 } from "@/state/data/defaultSampleDataset";
+import { parseViewFromHash, resolveViewFromLocation } from "@/state/ui/view-hash";
 import {
   hydrateHistoryFromIdb,
   normalizeSamplerIntervalMs,
@@ -33,6 +47,23 @@ import {
   stopSystemSampler,
 } from "@/core/system/sampler";
 import { samplerIntervalMsAtom } from "@/state/system/atoms";
+
+/** Seed IDB rows from manifest preview when metadata exists but row store is empty. */
+async function seedRowsFromManifestPreviews(
+  rpc: ReturnType<typeof getEngineRpc>,
+  datasets: DatasetMeta[],
+): Promise<void> {
+  for (const d of datasets) {
+    if (isDefaultSampleDatasetId(d.id)) continue;
+    const preview = d.preview;
+    if (!Array.isArray(preview) || preview.length === 0) continue;
+    const meta = await rpc.call<{ rowCount: number }>("Data", "getMeta", [
+      d.id,
+    ]);
+    if (meta.rowCount > 0) continue;
+    await rpc.call("Data", "save", [{ datasetId: d.id, data: preview }]);
+  }
+}
 
 /**
  * The main app component.
@@ -66,6 +97,9 @@ function App() {
   const store = useStore();
   const setPersistedDatasets = useSetAtom(persistedDatasetsAtom);
   const setActiveDataset = useSetAtom(activeDatasetAtom);
+  const setPersistedDashboards = useSetAtom(persistedDashboardsAtom);
+  const setActiveDashboardId = useSetAtom(activeDashboardIdAtom);
+  const setDashboardManifestHydrated = useSetAtom(dashboardManifestHydratedAtom);
   const { open: openConfirmDialog, close: closeConfirmDialog } =
     useConfirmDialog();
   const recoveryPromptedRef = useRef(false);
@@ -90,6 +124,10 @@ function App() {
       const hydrated = await hydrateMissingPreviewsFromIdb(merged);
       if (cancelled()) return;
       setPersistedDatasets(hydrated);
+      await rpc.call("Data", "saveManifest", [
+        hydrated.map(slimDatasetMetaForPersistence),
+      ]);
+      await seedRowsFromManifestPreviews(rpc, hydrated);
     },
     [setPersistedDatasets, store],
   );
@@ -166,6 +204,41 @@ function App() {
     setActiveDataset,
     setPersistedDatasets,
   ]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const fromIdb = await fetchDashboardManifestFromIdb();
+        if (cancelled) return;
+        const prev = store.get(persistedDashboardsAtom);
+        const merged = mergePersistedDashboardsWithIndexedDb(prev, fromIdb);
+        const list =
+          merged.length > 0 ? merged : [createDefaultMainDashboard()];
+        setPersistedDashboards(list);
+        const storedActiveId = store.get(activeDashboardIdAtom);
+        const fromHash = parseViewFromHash(location.hash);
+        const hashDashboardId = fromHash?.meta?.dashboardId;
+        const storedView = resolveViewFromLocation();
+        const metaDashboardId = storedView.meta?.dashboardId;
+        const preferredId = hashDashboardId ?? metaDashboardId ?? storedActiveId;
+
+        if (preferredId && findDashboardById(list, preferredId)) {
+          setActiveDashboardId(preferredId);
+        } else if (
+          !storedActiveId ||
+          !findDashboardById(list, storedActiveId)
+        ) {
+          setActiveDashboardId(list[0]!.id);
+        }
+      } finally {
+        if (!cancelled) setDashboardManifestHydrated(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [setActiveDashboardId, setDashboardManifestHydrated, setPersistedDashboards, store]);
 
   useEffect(() => {
     startSystemSampler(

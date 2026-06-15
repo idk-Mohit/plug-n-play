@@ -1,8 +1,24 @@
 import { SiteFooter } from "@/components/footer/Footer";
 import { SiteHeader } from "@/components/header/MainHeader";
+import { DashboardSettingsDrawer } from "@/components/dashboard/DashboardSettingsDrawer";
+import { DatasetInfoDrawer } from "@/components/dataset/DatasetInfoDrawer";
 import { AppSidebar } from "@/components/sidebar/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { ActivityMiniPanel } from "@/containers/activity/ActivityMiniPanel";
+import { useAtomValue } from "jotai";
+import { activeViewAtom } from "@/state/ui/view";
+
+function FooterDrawerSlot() {
+  const view = useAtomValue(activeViewAtom).view;
+
+  if (view === "dashboard") {
+    return <DashboardSettingsDrawer />;
+  }
+  if (view === "dataset") {
+    return <DatasetInfoDrawer />;
+  }
+  return null;
+}
 
 export default function DashboardLayout({
   children,
@@ -19,21 +35,17 @@ export default function DashboardLayout({
       }
     >
       <AppSidebar variant="inset" />
-      <SidebarInset
-        style={{
-          height: "calc(100vh - 15px)",
-          overflow: "hidden",
-        }}
-      >
-        <div className="position-sticky top-0">
-          <SiteHeader />
-        </div>
-        <div className="flex flex-1 flex-col position-fixed overflow-auto">
-          <div className="@container/main flex flex-1 flex-col gap-2">
-            <div className="flex flex-col gap-4 p-4 md:gap-6 md:py-6 relative">
-              {children}
+      <SidebarInset className="min-h-0">
+        <SiteHeader />
+        <div className="relative flex min-h-0 flex-1 basis-0 flex-col overflow-hidden">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+            <div className="@container/main flex flex-col gap-2">
+              <div className="flex flex-col gap-4 p-4 md:gap-6 md:py-6">
+                {children}
+              </div>
             </div>
           </div>
+          <FooterDrawerSlot />
         </div>
         <SiteFooter />
       </SidebarInset>

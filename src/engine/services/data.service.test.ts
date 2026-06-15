@@ -28,7 +28,9 @@ vi.mock("@/core/storage/indexdb", () => ({
   idbDelete: async (key: string) => {
     store.legacy.delete(key);
   },
-  idbSave: vi.fn(),
+  idbSave: async (key: string, value: unknown) => {
+    store.legacy.set(key, value);
+  },
   idbBulkWriteRows: async (datasetId: string, rows: unknown[]) => {
     let inner = store.ordinal.get(datasetId);
     if (!inner) {
@@ -143,6 +145,41 @@ describe("data.service / ensureDataset & IO", () => {
     }
   });
 
+  it("getPage applies row filters within the requested page slice", async () => {
+    const rows = [
+      { y: 10 },
+      { y: 50 },
+      { y: 90 },
+      { y: 20 },
+    ];
+    await dataService.save(
+      makeReq({
+        method: "save",
+        args: [{ datasetId: "filtered", data: rows }],
+      }),
+    );
+
+    const res = await dataService.getPage(
+      makeReq({
+        method: "getPage",
+        args: [
+          {
+            datasetId: "filtered",
+            offset: 0,
+            limit: 10,
+            filters: [{ id: "f1", field: "y", op: "gt", value: 40 }],
+          },
+        ],
+      }),
+    );
+
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.result.rows).toEqual([{ y: 50 }, { y: 90 }]);
+      expect(res.result.total).toBe(4);
+    }
+  });
+
   it("save removes legacy WIP keys under dataset:<id>:", async () => {
     store.legacy.set("dataset:ds2:chunk:0", [1, 2, 3]);
     store.legacy.set("dataset:ds2:meta", { version: 1 });
@@ -214,6 +251,33 @@ describe("data.service / ensureDataset & IO", () => {
     expect(store.idbPutMetaCalls).toBeGreaterThan(0);
   });
 
+  it("getPage seeds rows from IDB manifest preview when row store is empty", async () => {
+    store.legacy.set("datasources-manifest", [
+      {
+        id: "manifest-only",
+        name: "Recovered",
+        preview: [{ x: 1, y: 2 }, { x: 3, y: 4 }],
+      },
+    ]);
+
+    const res = await dataService.getPage(
+      makeReq({
+        method: "getPage",
+        args: [{ datasetId: "manifest-only", offset: 0, limit: 10 }],
+      }),
+    );
+
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.result.total).toBe(2);
+      expect(res.result.rows).toEqual([
+        { x: 1, y: 2 },
+        { x: 3, y: 4 },
+      ]);
+    }
+    expect(store.meta.get("manifest-only")?.rowCount).toBe(2);
+  });
+
   it("save persists a single JSON object as one row", async () => {
     const payload = { point: true, n: 42 };
     const saveRes = await dataService.save(
@@ -238,6 +302,63 @@ describe("data.service / ensureDataset & IO", () => {
     }
   });
 
+  it("saveDashboardManifest then getDashboardManifest round-trips", async () => {
+    const manifest = [
+      {
+        id: "d1",
+        name: "Main",
+        templateId: "blank",
+        createdAt: "2024-01-01T00:00:00.000Z",
+        updatedAt: "2024-01-01T00:00:00.000Z",
+      },
+    ];
+    const saveRes = await dataService.saveDashboardManifest(
+      makeReq({
+        method: "saveDashboardManifest",
+        args: [manifest],
+      }),
+    );
+    expect(saveRes.ok).toBe(true);
+
+    const getRes = await dataService.getDashboardManifest(
+      makeReq({ method: "getDashboardManifest" }),
+    );
+    expect(getRes.ok).toBe(true);
+    if (getRes.ok) {
+      expect(getRes.result).toEqual(manifest);
+    }
+  });
+
+  it("saveDashboardManifest rejects invalid manifest", async () => {
+    const res = await dataService.saveDashboardManifest(
+      makeReq({
+        method: "saveDashboardManifest",
+        args: [[{ id: "d1", name: "", templateId: "nope" }]],
+      }),
+    );
+    expect(res.ok).toBe(false);
+  });
+
+  it("getDashboardManifest filters invalid stored rows", async () => {
+    store.legacy.set("dashboards-manifest", [
+      {
+        id: "d1",
+        name: "Main",
+        templateId: "blank",
+        createdAt: "2024-01-01T00:00:00.000Z",
+        updatedAt: "2024-01-01T00:00:00.000Z",
+      },
+      { id: "bad", name: "", templateId: "nope" },
+    ]);
+    const res = await dataService.getDashboardManifest(
+      makeReq({ method: "getDashboardManifest" }),
+    );
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.result).toHaveLength(1);
+    }
+  });
+
   it("clearAll wipes rows, meta, legacy dataset:* keys, and manifest", async () => {
     store.meta.set("m1", {
       version: 1,
@@ -250,6 +371,15 @@ describe("data.service / ensureDataset & IO", () => {
     store.legacy.set("dataset:foo:chunk:0", [1]);
     store.legacy.set("dataset:bar", [2]);
     store.legacy.set("datasources-manifest", [{ id: "x" }]);
+    store.legacy.set("dashboards-manifest", [
+      {
+        id: "d1",
+        name: "Main",
+        templateId: "blank",
+        createdAt: "2024-01-01T00:00:00.000Z",
+        updatedAt: "2024-01-01T00:00:00.000Z",
+      },
+    ]);
 
     const res = await dataService.clearAll(makeReq({ method: "clearAll" }));
 

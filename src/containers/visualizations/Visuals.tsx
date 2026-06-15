@@ -1,49 +1,12 @@
 import { useMemo } from "react";
 
-import type { timeseriesdata } from "@/types/data.types";
-import { ChartType, GridType } from "@/enums/chart.enums";
-
 import { ChartCard } from "./ChartCard";
-
-/** Small, synchronous series for gallery cards (no worker); keep in the 5–10 range. */
-const SHOWCASE_POINT_COUNT = 8;
-
-function buildShowcaseSeries(count: number): timeseriesdata[] {
-  const n = Math.min(Math.max(count, 2), 10);
-  const stepMs = 60_000;
-  const now = Date.now();
-  return Array.from({ length: n }, (_, i) => ({
-    x: new Date(now - (n - i) * stepMs),
-    y: 35 + Math.sin((i / Math.max(n - 1, 1)) * Math.PI) * 30 + i * 2,
-  }));
-}
-
-const CHART_CARDS = [
-  {
-    id: "visuals-line",
-    type: ChartType.LINE,
-    label: "Line",
-    gridType: GridType.HORIZONTAL,
-  },
-  {
-    id: "visuals-area",
-    type: ChartType.AREA,
-    label: "Area",
-    gridType: GridType.HORIZONTAL,
-  },
-  {
-    id: "visuals-scatter",
-    type: ChartType.SCATTER,
-    label: "Scatter",
-    gridType: GridType.HORIZONTAL,
-  },
-  {
-    id: "visuals-bar",
-    type: ChartType.BAR,
-    label: "Bar",
-    gridType: GridType.HORIZONTAL,
-  },
-] as const;
+import {
+  buildShowcaseSeries,
+  SHOWCASE_POINT_COUNT,
+  VIZ_CHART_CATALOG,
+} from "@/components/dashboard/VizTypeGallery";
+import { GridType } from "@/enums/chart.enums";
 
 const Visuals = () => {
   const data = useMemo(
@@ -53,13 +16,13 @@ const Visuals = () => {
 
   return (
     <div className="flex flex-wrap gap-4 p-4">
-      {CHART_CARDS.map((cfg) => (
+      {VIZ_CHART_CATALOG.map((cfg) => (
         <ChartCard
-          key={cfg.id}
-          chartId={cfg.id}
+          key={cfg.type}
+          chartId={`visuals-${cfg.type}`}
           label={cfg.label}
           type={cfg.type}
-          gridType={cfg.gridType}
+          gridType={GridType.HORIZONTAL}
           data={data}
         />
       ))}

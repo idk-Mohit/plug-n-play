@@ -1,0 +1,34 @@
+---
+description: Security & privacy posture for all code in this repo
+alwaysApply: true
+---
+
+# Security & privacy (always)
+
+Plug & Play is **local-first**. The user's data must never leave their browser unless they explicitly choose to share it. These rules are non-negotiable.
+
+## Hard rules
+
+- **No secrets in source.** API keys, tokens, passwords — never committed. Use `.env.local` (gitignored) for local-only experiments and document the variable in the PR.
+- **No telemetry by default.** Do not add analytics, error tracking, or "phone home" calls without an explicit opt-in flag and visible user disclosure.
+- **No external network calls without justification.** Any `fetch()` to a non-local URL must be documented in the PR with the why, what is sent, and how it can be disabled. No Google Fonts CDN, no analytics CDNs, no ad networks.
+- **Treat every external byte as hostile.** CSV/JSON uploads, URL params, `postMessage` payloads, IndexedDB reads, RPC envelopes. Validate into a typed shape before use.
+- **Never `innerHTML` user-controlled content.** Use text nodes, React children, or a vetted sanitizer if HTML is genuinely required.
+- **Shareable state goes in URL `#fragment`, never `?query`.** Fragments are not sent to servers; queries are.
+- **No `eval`, `new Function()`, or `import()` of user-controlled strings.** No `dangerouslySetInnerHTML` on untrusted input.
+- **Same-origin only.** Never relax CORS or CSP to "fix" a feature; redesign instead.
+
+## Patterns to use
+
+- **Worker boundary**: parse and validate at `src/core/rpc/data-contract.ts`. Don't trust unvalidated payloads on either side.
+- **Storage boundary**: every read from `IndexedDB` / `localStorage` is defensively typed and version-aware (data may have been written by an older release).
+- **Error surfaces**: don't leak internal stack traces, file paths, or env values to the UI. Show user-friendly messages.
+- **URL state**: read from `location.hash`, never `location.search`, for anything derived from user data.
+
+## Threat model (one-liner)
+
+The browser is the perimeter. Anything that increases the chance user data leaks to a network, a third-party script, or a log we don't control is a defect.
+
+## When in doubt
+
+Ask: *"if this shipped, could user data reach anyone the user didn't choose — over the network, in a log, via a third-party script?"* If yes, design it out.

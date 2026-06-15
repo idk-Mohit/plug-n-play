@@ -11,12 +11,16 @@ import { useDatasetSlice } from "@/hooks/useDatasetSlice";
 import { activeDatasetAtom } from "@/state/data/dataset";
 import { isDefaultSampleDatasetId } from "@/state/data/defaultSampleDataset";
 
+import type { ChartType } from "@/enums/chart.enums";
+
 interface ChartPanelProps {
   id: string;
   title: string;
+  /** When set, syncs persisted panel chart type into chart settings. */
+  chartType?: ChartType;
 }
 
-export function ChartPanel({ id, title }: ChartPanelProps) {
+export function ChartPanel({ id, title, chartType }: ChartPanelProps) {
   const isTransitioning = useAtomValue(sidebarTransitionAtom);
   const active = useAtomValue(activeDatasetAtom);
   const canViewportInteract = !!(
@@ -30,8 +34,13 @@ export function ChartPanel({ id, title }: ChartPanelProps) {
   );
 
   useEffect(() => {
-    setChartSettings((prev) => ({ ...prev, title, id }));
-  }, [id, title, setChartSettings]);
+    setChartSettings((prev) => ({
+      ...prev,
+      title,
+      id,
+      ...(chartType ? { type: chartType } : {}),
+    }));
+  }, [chartType, id, title, setChartSettings]);
 
   return (
     <Card className="@container/card p-4 lg:px-6 w-[100%] relative gap-1.5">
